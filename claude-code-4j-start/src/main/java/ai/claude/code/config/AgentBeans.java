@@ -18,6 +18,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 /**
  * Spring Bean 配置 — 将所有 capability 和 AgentLoop 注册为 Spring Bean。
  * Spring Bean configuration — registers all capabilities and AgentLoop as Spring Beans.
@@ -84,10 +87,20 @@ public class AgentBeans {
     }
 
     @Bean
+    public ExecutorService streamExecutor() {
+        return Executors.newCachedThreadPool(r -> {
+            Thread t = new Thread(r, "sse-stream");
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
+    @Bean
     public TeammateRunner teammateRunner(OpenAiClient client,
                                          MessageBus messageBus,
-                                         TaskStore taskStore) {
-        return new TeammateRunner(client, workDir, messageBus, taskStore);
+                                         TaskStore taskStore,
+                                         SessionStore sessionStore) {
+        return new TeammateRunner(client, workDir, messageBus, taskStore, sessionStore);
     }
 
     /**

@@ -1,7 +1,9 @@
 package ai.claude.code.capability;
 
 import ai.claude.code.agent.TeammateLoop;
+import ai.claude.code.core.AgentEventListener;
 import ai.claude.code.core.OpenAiClient;
+import ai.claude.code.capability.SessionStore;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -47,6 +49,12 @@ public class TeammateRunner {
     /** 任务存储，Teammate 通过它认领任务 / TaskStore for Teammate task claiming */
     private final TaskStore taskStore;
 
+    /** 会话存储，用于持久化 Teammate 的对话历史 / SessionStore for persisting teammate sessions */
+    private final SessionStore sessionStore;
+
+    /** 当前 Lead 的 session ID，用于构造 Teammate session 文件名 / Lead session ID for naming teammate session files */
+    private volatile String leadSessionId;
+
     /**
      * Teammate 状态表 / Teammate status map.
      * key: teammate name, value: status record
@@ -59,6 +67,12 @@ public class TeammateRunner {
      * Cached thread pool: teammate count is small, threads created on demand.
      */
     private final ExecutorService executor = Executors.newCachedThreadPool();
+
+    /**
+     * 当前活跃的主 SSE 监听器（单用户 Playground，volatile 保证可见性）。
+     * Active main SSE listener for the current stream session (volatile for thread visibility).
+     */
+    private volatile AgentEventListener mainListener;
 
     /**
      * Teammate 状态记录。
@@ -86,11 +100,13 @@ public class TeammateRunner {
      * @param taskStore  任务存储 / task store
      */
     public TeammateRunner(OpenAiClient client, String workDir,
-                          MessageBus messageBus, TaskStore taskStore) {
-        this.client     = client;
-        this.workDir    = workDir;
-        this.messageBus = messageBus;
-        this.taskStore  = taskStore;
+                          MessageBus messageBus, TaskStore taskStore,
+                          SessionStore sessionStore) {
+        this.client        = client;
+        this.workDir       = workDir;
+        this.messageBus    = messageBus;
+        this.taskStore     = taskStore;
+        this.sessionStore  = sessionStore;
     }
 
     /**
@@ -114,7 +130,7 @@ public class TeammateRunner {
 
         TeammateLoop loop = new TeammateLoop(
                 name, role, instructions, client, workDir,
-                messageBus, taskStore, this);
+                messageBus, taskStore, this, sessionStore, leadSessionId);
 
         executor.submit(loop);
         System.out.println("[TeammateRunner] Spawned: " + name + " (role: " + role + ")");
@@ -155,6 +171,52 @@ public class TeammateRunner {
             ts.status = status;
             System.out.println("[TeammateRunner] " + name + " → " + status);
         }
+        if ("done".equals(status)) notifyTeamDone(name);
+    }
+
+    // ── 主 SSE 监听器注册 / Main SSE listener registration ──
+
+    /**
+     * 注册当前流请求的主监听器，供 TeammateLoop 转发事件使用。
+     * Register the main listener for the current stream request.
+     */
+    public void setMainListener(AgentEventListener listener) {
+        this.mainListener = listener;
+    }
+
+    /**
+     * 设置当前 Lead session ID，spawn 时传给 TeammateLoop 用于持久化文件命名。
+     * Set the current lead session ID for teammate session file naming.
+     */
+    public void setLeadSessionId(String sessionId) {
+        this.leadSessionId = sessionId;
+    }
+
+    // ── Teammate 事件转发 / Teammate event forwarding ──
+
+    /** TeammateLoop 回调：工具调用开始 / Tool call starting */
+    public void notifyTeamToolStart(String agentId, String id, String toolName,
+                                    com.google.gson.JsonObject input) {
+        AgentEventListener l = mainListener;
+        if (l != null && !l.isCancelled()) l.onTeamToolStart(agentId, id, toolName, input);
+    }
+
+    /** TeammateLoop 回调：工具调用结束 / Tool call finished */
+    public void notifyTeamToolEnd(String agentId, String id, boolean success, String result) {
+        AgentEventListener l = mainListener;
+        if (l != null && !l.isCancelled()) l.onTeamToolEnd(agentId, id, success, result);
+    }
+
+    /** TeammateLoop 回调：LLM 返回文本 / LLM text response */
+    public void notifyTeamText(String agentId, String text) {
+        AgentEventListener l = mainListener;
+        if (l != null && !l.isCancelled()) l.onTeamText(agentId, text);
+    }
+
+    /** TeammateLoop 回调：工作会话结束 / Working session ended */
+    public void notifyTeamDone(String agentId) {
+        AgentEventListener l = mainListener;
+        if (l != null && !l.isCancelled()) l.onTeamDone(agentId);
     }
 
     /**

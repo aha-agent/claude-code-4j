@@ -87,6 +87,84 @@ public class SessionStore {
         }
     }
 
+    /**
+     * Metadata snapshot for one session — used by GET /api/sessions.
+     */
+    public record SessionMeta(String sessionId, String preview, java.time.Instant updatedAt) {}
+
+    /**
+     * List all sessions, sorted by most-recently-updated first.
+     * Preview = first user message text, truncated to 50 chars.
+     */
+    public java.util.List<SessionMeta> listAll() {
+        File dir = new File(sessionsDir);
+        File[] files = dir.listFiles((d, name) -> name.endsWith(".json"));
+        if (files == null) return java.util.Collections.emptyList();
+
+        java.util.List<SessionMeta> result = new java.util.ArrayList<>();
+        for (File f : files) {
+            String name = f.getName();
+            String sessionId = name.substring(0, name.length() - 5); // strip .json
+            java.time.Instant updatedAt = java.time.Instant.ofEpochMilli(f.lastModified());
+
+            String preview = "";
+            try {
+                String content = new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
+                JsonArray arr = JsonParser.parseString(content).getAsJsonArray();
+                for (com.google.gson.JsonElement el : arr) {
+                    com.google.gson.JsonObject msg = el.getAsJsonObject();
+                    if ("user".equals(msg.has("role") ? msg.get("role").getAsString() : "")) {
+                        com.google.gson.JsonElement c = msg.get("content");
+                        if (c != null && !c.isJsonNull() && c.isJsonPrimitive()) {
+                            String raw = c.getAsString();
+                            preview = raw.length() > 50 ? raw.substring(0, 50) + "…" : raw;
+                        }
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("[SessionStore] listAll parse error for " + sessionId + ": " + e.getMessage());
+            }
+
+            result.add(new SessionMeta(sessionId, preview, updatedAt));
+        }
+
+        result.sort((a, b) -> b.updatedAt().compareTo(a.updatedAt()));
+        return result;
+    }
+
+    /**
+     * Teammate 信息记录，供 GET /api/sessions/{sessionId}/teammates 使用。
+     */
+    public record TeammateInfo(String name, String sessionId) {}
+
+    /**
+     * 列出属于指定 Lead 会话的所有 Teammate 会话文件。
+     * 命名约定：{leadSessionId}-tm-{name}.json
+     * List teammate session files for a given lead session.
+     * Naming convention: {leadSessionId}-tm-{name}.json
+     *
+     * @param leadSessionId Lead 会话 ID
+     * @return Teammate 信息列表
+     */
+    public java.util.List<TeammateInfo> listTeammates(String leadSessionId) {
+        File dir = new File(sessionsDir);
+        File[] files = dir.listFiles((d, name) -> name.endsWith(".json"));
+        if (files == null) return java.util.Collections.emptyList();
+
+        String prefix = leadSessionId + "-tm-";
+        java.util.List<TeammateInfo> result = new java.util.ArrayList<>();
+        for (File f : files) {
+            String baseName = f.getName(); // e.g. "20260415120000-abc-tm-alice.json"
+            if (!baseName.startsWith(prefix)) continue;
+            // strip prefix and .json suffix to get teammate name
+            String tmName = baseName.substring(prefix.length(), baseName.length() - 5);
+            String tmSessionId = baseName.substring(0, baseName.length() - 5);
+            result.add(new TeammateInfo(tmName, tmSessionId));
+        }
+        return result;
+    }
+
     private Path sessionPath(String sessionId) {
         // 防目录遍历：只取文件名部分 / Prevent path traversal: use basename only
         String safe = new File(sessionId).getName();

@@ -5,6 +5,24 @@ Each version corresponds to one conversation iteration.
 
 ---
 
+## v0.9 — 2026-04-15
+
+### 需求
+> 对话过程中看不到 Agent Team 卡片；对话完成后才在底部出现卡片；右侧工作空间太简陋，看不到执行细节
+
+### 根因
+1. `ensureTeammateStatusCard` 将卡片嵌套插入 `.ai-body`，被主 agent 内容压住不可见
+2. `finishTeammateCard` 只更新已有卡片，若 `team_done` 先于 `team_tool_start` 到达则不创建卡片
+3. `renderMiniMessages` 只渲染工具名 chip，没有 input/output 内容
+
+### 变更
+- `index.html` `ensureTeammateStatusCard()`：改为直接 `msgWrap.appendChild(card)`，Teammate 状态卡作为顶层行插入，实时可见
+- `index.html` `finishTeammateCard()`：改为调用 `ensureTeammateStatusCard()`，即使 `team_done` 先到也能创建卡片
+- `index.html` `renderMiniMessages()`：完整重写——先建 tool_call_id→result 查找表，再用可折叠 `.mini-tool-block` 展示每个工具的 Input 和 Output（输出最多 3000 字符）；AI 文本完整渲染
+- `index.html` CSS：新增 `.mini-tool-block`、`.mini-tool-header`、`.mini-tool-body`、`.mini-tool-label`、`.mini-tool-code` 等工作空间抽屉用的工具块样式，支持点击折叠/展开
+
+---
+
 ## v0.8 — 2026-04-15
 
 ### 需求

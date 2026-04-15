@@ -762,25 +762,51 @@ textarea#msgInput::placeholder { color: var(--t4); }
 .drawer-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
 
 /* ── Mini message list (inside drawer) ── */
-.mini-msg { margin-bottom: 10px; }
-.mini-user {
-  display: flex; justify-content: flex-end; margin-bottom: 6px;
-}
+.mini-user { display: flex; justify-content: flex-end; margin-bottom: 8px; }
 .mini-user-bubble {
   background: rgba(255,255,255,0.04); border: 1px solid var(--b-std);
   border-radius: 8px 8px 2px 8px; padding: 6px 10px;
   font-size: 12px; color: var(--t2); max-width: 80%;
   white-space: pre-wrap; word-break: break-word;
 }
-.mini-ai { margin-bottom: 4px; }
-.mini-ai-text { font-size: 12px; color: var(--t2); line-height: 1.6; }
-.mini-tool {
-  font-size: 11px; font-family: var(--mono); color: var(--t4);
-  padding: 3px 6px; background: rgba(255,255,255,0.02);
-  border: 1px solid var(--b-sub); border-radius: 4px;
-  margin: 2px 0; display: flex; align-items: center; gap: 5px;
+.mini-ai { margin-bottom: 8px; }
+.mini-ai-text {
+  font-size: 12.5px; color: var(--t2); line-height: 1.65;
+  white-space: pre-wrap; word-break: break-word; margin-top: 4px;
 }
+/* Mini tool block — collapsible, with input/output detail */
+.mini-tool-block {
+  border: 1px solid var(--b-std); border-radius: 6px;
+  background: rgba(255,255,255,0.01); margin: 3px 0; overflow: hidden;
+}
+.mini-tool-header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 8px; cursor: pointer; user-select: none;
+  transition: background 0.12s;
+}
+.mini-tool-header:hover { background: rgba(255,255,255,0.03); }
 .mini-tool-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--ok); flex-shrink: 0; }
+.mini-tool-fn { font-family: var(--mono); font-size: 11.5px; color: var(--ok); }
+.mini-tool-toggle { margin-left: auto; font-size: 10px; color: var(--t4); transition: transform 0.2s; }
+.mini-tool-block.open .mini-tool-toggle { transform: rotate(180deg); }
+.mini-tool-body {
+  border-top: 1px solid var(--b-sub); padding: 6px 8px; display: none;
+}
+.mini-tool-block.open .mini-tool-body { display: block; }
+.mini-tool-label {
+  font-size: 10px; font-weight: 510; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--t4); margin-bottom: 3px;
+}
+.mini-tool-label.out { color: rgba(16,185,129,0.6); }
+.mini-tool-code {
+  background: var(--bg-page); border: 1px solid var(--b-sub); border-radius: 4px;
+  padding: 4px 7px; font-family: var(--mono); font-size: 11px; color: var(--t3);
+  white-space: pre-wrap; word-break: break-all; line-height: 1.55;
+  max-height: 150px; overflow-y: auto; margin-bottom: 5px;
+}
+.mini-tool-code:last-child { margin-bottom: 0; }
+.mini-tool-code::-webkit-scrollbar { width: 3px; }
+.mini-tool-code::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
 
 /* ── Responsive ── */
 @media (max-width:640px) {
@@ -1007,12 +1033,9 @@ function ensureTeammateStatusCard(agentId) {
     <span class="tm-status"> · 正在工作...</span>
     <span class="tm-count"></span>
     <button class="tm-btn" onclick="openDrawer('teammate',{agentId:'${escHtml(agentId)}',sessionId:currentTeammateSessions['${escHtml(agentId)}']})">查看工作区 →</button>`;
-  // Append to the last ai-body or create a new ai row
-  const aiRows = msgWrap.querySelectorAll('.msg-ai');
-  let targetBody = null;
-  if (aiRows.length > 0) targetBody = aiRows[aiRows.length - 1].querySelector('.ai-body');
-  if (!targetBody) targetBody = appendAiRow();
-  targetBody.appendChild(card);
+  // Append directly to msgWrap so the card is always visible as a top-level row
+  hideEmpty();
+  msgWrap.appendChild(card);
   scrollBottom();
   teammateMap[agentId] = {
     card,
@@ -1031,8 +1054,7 @@ function updateTeammateStatus(agentId, toolName) {
 }
 
 function finishTeammateCard(agentId) {
-  const tm = teammateMap[agentId];
-  if (!tm) return;
+  const tm = ensureTeammateStatusCard(agentId); // create card if not yet created
   tm.dotEl.className = 'tm-dot done';
   tm.statusEl.textContent = ' · 完成';
   const cnt = tm.toolCount;
@@ -1142,11 +1164,19 @@ async function loadTeammateContent(agentId, tmSessionId) {
 
 function renderMiniMessages(container, msgs) {
   container.innerHTML = '';
+  // Build tool_call_id → result map for input/output display
+  const toolResultMap = {};
   for (const msg of msgs) {
+    if (msg.role === 'tool' && msg.tool_call_id) {
+      toolResultMap[msg.tool_call_id] = msg._display_content || msg.content || '';
+    }
+  }
+  for (const msg of msgs) {
+    if (msg.role === 'tool') continue; // rendered via assistant tool_calls below
     if (msg.role === 'user' && typeof msg.content === 'string' && msg.content.includes('<system-reminder>')) continue;
     if (msg.role === 'user' && typeof msg.content === 'string' && msg.content.startsWith('[Context was compacted.')) {
       const el = document.createElement('div');
-      el.style.cssText = 'font-size:11px;color:var(--brand);padding:4px 0;font-style:italic;';
+      el.style.cssText = 'font-size:11px;color:var(--brand);padding:6px 0;font-style:italic;';
       el.textContent = '[Context compressed here]';
       container.appendChild(el);
       continue;
@@ -1159,18 +1189,36 @@ function renderMiniMessages(container, msgs) {
     } else if (msg.role === 'assistant') {
       const text = typeof msg.content === 'string' ? msg.content : '';
       const toolCalls = Array.isArray(msg.tool_calls) ? msg.tool_calls : [];
-      if (text || toolCalls.length > 0) {
-        const div = document.createElement('div');
-        div.className = 'mini-ai';
-        let html = '';
-        for (const tc of toolCalls) {
-          const name = tc.function && tc.function.name ? tc.function.name : '?';
-          html += `<div class="mini-tool"><span class="mini-tool-dot"></span>${escHtml(name)}</div>`;
-        }
-        if (text) html += `<div class="mini-ai-text">${escHtml(text.slice(0, 300))}${text.length > 300 ? '…' : ''}</div>`;
-        div.innerHTML = html;
-        container.appendChild(div);
+      if (!text && toolCalls.length === 0) continue;
+      const div = document.createElement('div');
+      div.className = 'mini-ai';
+      for (const tc of toolCalls) {
+        const name = tc.function && tc.function.name ? tc.function.name : '?';
+        let args = {};
+        try { args = JSON.parse((tc.function && tc.function.arguments) || '{}'); } catch(e) {}
+        const result = toolResultMap[tc.id] || '';
+        const block = document.createElement('div');
+        block.className = 'mini-tool-block';
+        block.innerHTML = `
+          <div class="mini-tool-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="mini-tool-dot"></span>
+            <span class="mini-tool-fn">${escHtml(name)}</span>
+            <span class="mini-tool-toggle">▾</span>
+          </div>
+          <div class="mini-tool-body">
+            <div class="mini-tool-label">Input</div>
+            <div class="mini-tool-code">${escHtml(JSON.stringify(args, null, 2))}</div>
+            ${result ? `<div class="mini-tool-label out">Output</div><div class="mini-tool-code">${escHtml(result.slice(0, 3000))}${result.length > 3000 ? '\n…(truncated)' : ''}</div>` : ''}
+          </div>`;
+        div.appendChild(block);
       }
+      if (text) {
+        const el = document.createElement('div');
+        el.className = 'mini-ai-text';
+        el.textContent = text;
+        div.appendChild(el);
+      }
+      container.appendChild(div);
     }
   }
   if (container.children.length === 0) {

@@ -146,3 +146,22 @@ Response: { "status": "UP" }
 - `docs/study/index.html` — 项目主页（架构图、能力说明、快速上手）
 - `docs/study/api.html` — REST API 参考文档
 - `docs/TESTING.md` — 核心场景测试报告（10 个场景，含 Agent Teams 全流程）
+- `docs/CHANGELOG.md` — 每次迭代的变更记录
+
+## 开发规范
+
+### Changelog 维护（必须执行）
+
+每次对代码进行修改后，**必须**在 `docs/CHANGELOG.md` 中追加一个新版本条目，格式如下：
+
+```markdown
+## vX.Y — YYYY-MM-DD
+
+### 需求
+> 用户的原始需求描述
+
+### 变更
+- 文件/模块：具体改动说明
+```
+
+版本号规则：在当前最新版本基础上 +0.1。条目插入位置：文件顶部（最新版本在最前）。

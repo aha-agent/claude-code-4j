@@ -75,6 +75,8 @@ public class StreamService {
 
         // Register listener so TeammateLoop threads can forward events to the main SSE stream
         teammateRunner.setMainListener(listener);
+        // Pass lead session ID so TeammateLoop can persist to {sessionId}-tm-{name}.json
+        teammateRunner.setLeadSessionId(sessionId);
 
         try {
             // Send session_id as first event
@@ -97,8 +99,9 @@ public class StreamService {
             }
             emitter.completeWithError(e);
         } finally {
-            // Clear listener so orphaned teammate threads don't write to a stale emitter
+            // Clear listener and session ID so orphaned teammate threads don't write to stale emitter
             teammateRunner.setMainListener(null);
+            teammateRunner.setLeadSessionId(null);
         }
     }
 
@@ -237,10 +240,11 @@ public class StreamService {
         // ── Compact event ──
 
         @Override
-        public void onCompactDone(String summary) {
+        public void onCompactDone(String summary, String transcriptFile) {
             if (cancelled) return;
             JsonObject p = new JsonObject();
             p.addProperty("summary", summary);
+            if (transcriptFile != null) p.addProperty("transcriptFile", transcriptFile);
             send(emitter, "compact_done", GSON.toJson(p));
         }
     }

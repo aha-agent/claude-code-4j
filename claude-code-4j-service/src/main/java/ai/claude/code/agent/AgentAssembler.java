@@ -3,6 +3,7 @@ package ai.claude.code.agent;
 import ai.claude.code.capability.BackgroundRunner;
 import ai.claude.code.capability.ContextCompactor;
 import ai.claude.code.capability.MessageBus;
+import ai.claude.code.capability.SessionStore;
 import ai.claude.code.capability.SkillLoader;
 import ai.claude.code.capability.TaskStore;
 import ai.claude.code.capability.TeammateRunner;
@@ -58,7 +59,8 @@ public class AgentAssembler {
         BackgroundRunner bgRunner       = new BackgroundRunner();
         WorktreeManager worktreeManager = new WorktreeManager(workDir);
         MessageBus messageBus           = new MessageBus(workDir);
-        TeammateRunner teammateRunner   = new TeammateRunner(client, workDir, messageBus, taskStore);
+        SessionStore sessionStore       = new SessionStore(workDir + "/.sessions");
+        TeammateRunner teammateRunner   = new TeammateRunner(client, workDir, messageBus, taskStore, sessionStore);
 
         return build(client, workDir, baseTools, todoManager, skillLoader,
                 compactor, taskStore, bgRunner, worktreeManager, messageBus, teammateRunner);

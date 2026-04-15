@@ -1,6 +1,7 @@
 package ai.claude.code.agent;
 
 import ai.claude.code.capability.MessageBus;
+import ai.claude.code.capability.SessionStore;
 import ai.claude.code.capability.TaskPoller;
 import ai.claude.code.capability.TaskStore;
 import ai.claude.code.capability.TeammateRunner;
@@ -70,6 +71,8 @@ public class TeammateLoop implements Runnable {
     private final TaskStore taskStore;
     private final TeammateRunner runner;
     private final BaseTools baseTools;
+    private final SessionStore sessionStore;
+    private final String leadSessionId;
 
     // ===== LLM 参数 / LLM Params =====
     private final String systemPrompt;
@@ -95,15 +98,18 @@ public class TeammateLoop implements Runnable {
     public TeammateLoop(String name, String role, String instructions,
                         OpenAiClient client, String workDir,
                         MessageBus messageBus, TaskStore taskStore,
-                        TeammateRunner runner) {
-        this.name         = name;
-        this.role         = role;
-        this.instructions = instructions;
-        this.client       = client;
-        this.messageBus   = messageBus;
-        this.taskStore    = taskStore;
-        this.runner       = runner;
-        this.baseTools    = new BaseTools(workDir);
+                        TeammateRunner runner,
+                        SessionStore sessionStore, String leadSessionId) {
+        this.name          = name;
+        this.role          = role;
+        this.instructions  = instructions;
+        this.client        = client;
+        this.messageBus    = messageBus;
+        this.taskStore     = taskStore;
+        this.runner        = runner;
+        this.baseTools     = new BaseTools(workDir);
+        this.sessionStore  = sessionStore;
+        this.leadSessionId = leadSessionId;
 
         this.systemPrompt = buildSystemPrompt();
         this.dispatch     = buildDispatch();
@@ -127,6 +133,7 @@ public class TeammateLoop implements Runnable {
             messages = reinjectIdentityIfNeeded(messages);
 
             boolean continueWorking = runWorkingSession(messages);
+            saveSession(messages);
 
             if (!continueWorking || !running) break;
 
@@ -141,6 +148,7 @@ public class TeammateLoop implements Runnable {
             runner.updateStatus(name, "working");
         }
 
+        saveSession(messages);
         runner.updateStatus(name, "done");
         System.out.println("[Teammate " + name + "] Stopped.");
     }
@@ -265,6 +273,24 @@ public class TeammateLoop implements Runnable {
             }
         }
         return false; // 超时，无工作
+    }
+
+    // ===================================================================
+    // Session 持久化 / Session Persistence
+    // ===================================================================
+
+    /**
+     * 将当前对话历史持久化到独立的 session 文件（{leadSessionId}-tm-{name}）。
+     * 文件名格式确保可通过 lead session ID 关联，供历史恢复时查找。
+     * Persist conversation history to a separate session file linked to the lead session.
+     */
+    private void saveSession(JsonArray messages) {
+        if (sessionStore == null || leadSessionId == null || leadSessionId.isBlank()) return;
+        try {
+            sessionStore.save(leadSessionId + "-tm-" + name, messages);
+        } catch (Exception e) {
+            System.err.println("[Teammate " + name + "] Failed to save session: " + e.getMessage());
+        }
     }
 
     // ===================================================================

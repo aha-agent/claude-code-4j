@@ -5,8 +5,12 @@ import ai.claude.code.web.dto.ChatRequest;
 import ai.claude.code.web.dto.ChatResponse;
 import ai.claude.code.web.dto.SessionMeta;
 import ai.claude.code.web.service.ChatService;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +19,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,6 +36,11 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api")
 public class ChatController {
+
+    private static final Gson GSON = new GsonBuilder().create();
+
+    @Value("${claude.workdir:${user.dir}}")
+    private String workDir;
 
     @Autowired
     private ChatService chatService;
@@ -81,5 +94,40 @@ public class ChatController {
     public String getSessionMessages(@PathVariable("sessionId") String sessionId) {
         JsonArray messages = sessionStore.load(sessionId);
         return "{\"sessionId\":\"" + sessionId + "\",\"messages\":" + messages.toString() + "}";
+    }
+
+    /**
+     * List teammate sessions for a given lead session.
+     * GET /api/sessions/{sessionId}/teammates
+     * Returns: [{ "name": "alice", "sessionId": "{leadId}-tm-alice" }, ...]
+     */
+    @GetMapping(value = "/sessions/{sessionId}/teammates", produces = "application/json")
+    public String getTeammates(@PathVariable("sessionId") String sessionId) {
+        List<SessionStore.TeammateInfo> teammates = sessionStore.listTeammates(sessionId);
+        return GSON.toJson(teammates);
+    }
+
+    /**
+     * Serve a transcript file from the .transcripts/ directory.
+     * GET /api/transcripts/{filename}
+     * Basename-only check prevents path traversal.
+     */
+    @GetMapping(value = "/transcripts/{filename}", produces = "application/json")
+    public ResponseEntity<String> getTranscript(@PathVariable("filename") String filename) {
+        // Security: only allow alphanumeric/underscore/hyphen/dot, must end with .json
+        if (!filename.matches("[\\w\\-]+\\.json")) {
+            return ResponseEntity.badRequest().build();
+        }
+        String safeBasename = new File(filename).getName();
+        java.nio.file.Path path = Paths.get(workDir, ".transcripts", safeBasename);
+        if (!Files.exists(path)) {
+            return ResponseEntity.notFound().build();
+        }
+        try {
+            String content = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+            return ResponseEntity.ok(content);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

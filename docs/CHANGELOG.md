@@ -5,6 +5,88 @@ Each version corresponds to one conversation iteration.
 
 ---
 
+## v0.8 — 2026-04-15
+
+### 需求
+> 点击左侧对话历史恢复时，右侧工具卡片会默认展开，应该是已完成的默认关闭
+
+### 变更
+- `index.html` `switchSession()`：工具卡片渲染时移除 `open` class（原为 `tool-block done open`，改为 `tool-block done`），历史恢复后所有已完成工具卡默认折叠，用户点击展开查看
+
+---
+
+## v0.7 — 2026-04-15
+
+### 需求
+> Agent Team 模式下，对话被压缩后恢复时对话流乱掉；Teammate 工作数据丢失；工具卡片塞满对话流；
+> 自动压缩（Layer 2）不触发前端 compact 事件；历史恢复时压缩消息作为普通气泡渲染
+
+### 变更
+
+#### 后端 service 模块
+- `ContextCompactor.java`：`saveTranscript()` 改为返回文件名（basename）；`compact()` 将 `_transcript_file` 写入 compacted user 消息（私有字段，API 前剥离）
+- `AgentEventListener.java`：`onCompactDone(summary)` → `onCompactDone(summary, transcriptFile)`
+- `AgentLoop.java`：新增 `extractTranscriptFile()` 方法；model-triggered compact 和 auto-compact（Layer 2）均调用 `listener.onCompactDone(summary, transcriptFile)`（修复 Layer 2 静默 bug）
+- `TeammateRunner.java`：新增 `SessionStore sessionStore` 字段（构造器注入）、`volatile String leadSessionId`、`setLeadSessionId()` 方法；spawn 时将两者传给 `TeammateLoop`
+- `TeammateLoop.java`：新增 `sessionStore` 和 `leadSessionId` 字段；每次 working session 结束及线程退出时调用 `sessionStore.save(leadSessionId + "-tm-" + name, messages)`
+- `SessionStore.java`：新增 `TeammateInfo` record 和 `listTeammates(leadSessionId)` 方法，扫描匹配的 teammate session 文件
+- `AgentAssembler.java`：自动构建 `SessionStore` 并传入 `TeammateRunner`
+
+#### 后端 start 模块
+- `AgentBeans.java`：`teammateRunner()` bean 注入 `SessionStore`
+- `StreamService.java`：请求开始时调用 `setLeadSessionId(sessionId)`，finally 时清除；`onCompactDone` 实现包含 `transcriptFile` 字段
+- `ChatController.java`：新增 `GET /api/sessions/{sessionId}/teammates`（扫描 teammate session 列表）；新增 `GET /api/transcripts/{filename}`（按需加载压缩前历史，basename 校验防路径穿越）
+
+#### 前端 `index.html`
+
+**工作空间抽屉（右侧）**
+- 新增 `.workspace-drawer` CSS：右侧 440px 固定面板，`transform: translateX(100%)` 收起，`.open` 时滑入
+- 新增 `.drawer-header`、`.drawer-tabs`、`.drawer-tab.active`、`.drawer-content` 样式
+- 新增 `.mini-*` 样式：抽屉内 mini message list 渲染
+- `<div id="workspaceDrawer">` 加到 `.layout` 外侧
+- `openDrawer(type, data)` / `closeDrawer()`：控制抽屉开关，同步 `.layout` `margin-right`
+- `renderTranscriptDrawer({ transcriptFile, summary })`：加载 `/api/transcripts/{file}`，渲染压缩前历史
+- `renderTeammateDrawer({ agentId })`：Tab 栏 + `loadTeammateContent()` 加载 `/api/sessions/{tmSessionId}/messages`
+
+**Compact 卡片重设计**
+- 替换为 slim 单行样式：`[icon] Context Compressed [20字摘要...] [查看完整历史 →]`
+- 点击按钮调用 `openDrawer('transcript', { transcriptFile, summary })`
+- 移除旧的 expand/collapse 交互
+
+**Teammate 状态卡重设计**
+- 移除旧的 `workspaceMap` + inline 工具块方案
+- 新增 `teammateMap`、`currentTeammateSessions`
+- `ensureTeammateStatusCard(agentId)`：创建 slim 单行状态卡
+- `team_tool_start`：更新状态文本（工具名），计数++
+- `team_tool_end` / `team_text`：更新状态文本
+- `team_done`：记录 teammate sessionId，显示"查看工作区 →"按钮
+
+**历史恢复 `switchSession()` 修复**
+- 检测 `role=user && content.startsWith('[Context was compacted.')` → 渲染为 Compact 卡，不作 user bubble
+- 新增 `skipNextAssistantAck` 标志：跳过 compact 后的 `Understood...` assistant 确认消息
+- `switchSession` 末尾调用 `GET /api/sessions/{id}/teammates`，若有 teammate 则追加工作区入口卡
+
+---
+
+## v0.6 — 2026-04-15
+
+### 需求
+> 前台页面先展示了模型答复，然后展示了已思考卡片，最后展示的是工具卡片（顺序错误）
+
+### 根因
+前端用单个 `textEl` 变量接收整个流式会话的所有文字。该元素在**第一次** `text_delta` 时创建并固定插入 DOM，后续轮次（工具执行完后的最终回复）复用同一元素 → 最终回复出现在工具卡之前。当模型先吐文字再做推理（`text_delta` 早于 `thinking_start`）时，textEl 已在 think_block 之前，导致 reply → thinking → tool 的错误视觉顺序。
+
+### 变更
+
+#### `index.html`
+- 新增 `textEls[]` 数组：追踪本次流式响应创建的所有文字块，用于 `done` 时批量渲染 markdown（之前只渲染最后一个 textEl）
+- 新增 `needNewTextEl` 布尔标志：为 true 时 `getOrCreateTextEl()` 强制创建新元素而非复用
+- `tool_end` / `tool_error`：执行后设 `needNewTextEl = true`，确保最终回复在所有工具卡之后创建新元素
+- `thinking_start`：若 `textEl` 已存在（文字比推理先到达），设 `needNewTextEl = true`，保证推理卡之后的回复不会倒退到推理卡之前
+- 断线重试逻辑：补充重置 `textEls = []` 和 `needNewTextEl = false`
+
+---
+
 ## v0.5 — 2026-04-15
 
 ### 需求

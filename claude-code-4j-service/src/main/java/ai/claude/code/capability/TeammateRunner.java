@@ -3,6 +3,7 @@ package ai.claude.code.capability;
 import ai.claude.code.agent.TeammateLoop;
 import ai.claude.code.core.AgentEventListener;
 import ai.claude.code.core.OpenAiClient;
+import ai.claude.code.capability.SessionStore;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -47,6 +48,12 @@ public class TeammateRunner {
 
     /** 任务存储，Teammate 通过它认领任务 / TaskStore for Teammate task claiming */
     private final TaskStore taskStore;
+
+    /** 会话存储，用于持久化 Teammate 的对话历史 / SessionStore for persisting teammate sessions */
+    private final SessionStore sessionStore;
+
+    /** 当前 Lead 的 session ID，用于构造 Teammate session 文件名 / Lead session ID for naming teammate session files */
+    private volatile String leadSessionId;
 
     /**
      * Teammate 状态表 / Teammate status map.
@@ -93,11 +100,13 @@ public class TeammateRunner {
      * @param taskStore  任务存储 / task store
      */
     public TeammateRunner(OpenAiClient client, String workDir,
-                          MessageBus messageBus, TaskStore taskStore) {
-        this.client     = client;
-        this.workDir    = workDir;
-        this.messageBus = messageBus;
-        this.taskStore  = taskStore;
+                          MessageBus messageBus, TaskStore taskStore,
+                          SessionStore sessionStore) {
+        this.client        = client;
+        this.workDir       = workDir;
+        this.messageBus    = messageBus;
+        this.taskStore     = taskStore;
+        this.sessionStore  = sessionStore;
     }
 
     /**
@@ -121,7 +130,7 @@ public class TeammateRunner {
 
         TeammateLoop loop = new TeammateLoop(
                 name, role, instructions, client, workDir,
-                messageBus, taskStore, this);
+                messageBus, taskStore, this, sessionStore, leadSessionId);
 
         executor.submit(loop);
         System.out.println("[TeammateRunner] Spawned: " + name + " (role: " + role + ")");
@@ -173,6 +182,14 @@ public class TeammateRunner {
      */
     public void setMainListener(AgentEventListener listener) {
         this.mainListener = listener;
+    }
+
+    /**
+     * 设置当前 Lead session ID，spawn 时传给 TeammateLoop 用于持久化文件命名。
+     * Set the current lead session ID for teammate session file naming.
+     */
+    public void setLeadSessionId(String sessionId) {
+        this.leadSessionId = sessionId;
     }
 
     // ── Teammate 事件转发 / Teammate event forwarding ──

@@ -40,6 +40,9 @@ public interface AgentEventListener {
 
     // ── Compact event ──
 
-    /** Context compression completed. @param summary the LLM-generated summary */
-    default void onCompactDone(String summary) {}
+    /** Context compression completed.
+     *  @param summary        the LLM-generated summary
+     *  @param transcriptFile basename of the transcript JSON saved before compression (may be null)
+     */
+    default void onCompactDone(String summary, String transcriptFile) {}
 }

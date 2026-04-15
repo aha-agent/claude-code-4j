@@ -6,3 +6,6 @@
 /.tasks
 /.team
 /.transcripts
+.claude
+.worktrees
+*.class

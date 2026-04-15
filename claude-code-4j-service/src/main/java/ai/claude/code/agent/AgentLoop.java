@@ -232,13 +232,19 @@ public class AgentLoop {
                 if (usedCompact) {
                     JsonArray compacted = compactor.compact(messages, systemPrompt);
                     String summary = extractCompactSummary(compacted);
+                    String transcriptFile = extractTranscriptFile(compacted);
                     markCompactSummaryInMessages(messages, summary);
-                    listener.onCompactDone(summary);
+                    listener.onCompactDone(summary, transcriptFile);
                     inplaceReplace(messages, compacted);
                 }
                 inplaceReplace(messages, compactor.microCompact(messages));
-                if (compactor.shouldAutoCompact(messages))
-                    inplaceReplace(messages, compactor.compact(messages, systemPrompt));
+                if (compactor.shouldAutoCompact(messages)) {
+                    JsonArray compacted = compactor.compact(messages, systemPrompt);
+                    String summary = extractCompactSummary(compacted);
+                    String transcriptFile = extractTranscriptFile(compacted);
+                    listener.onCompactDone(summary, transcriptFile);
+                    inplaceReplace(messages, compacted);
+                }
 
                 if (todoManager.needsReminder())
                     messages.add(OpenAiClient.userMessage(
@@ -259,6 +265,22 @@ public class AgentLoop {
             listener.onDone();
         }
         return lastText;
+    }
+
+    /**
+     * 从压缩后消息的第一条 user 消息中提取 _transcript_file 私有字段。
+     * Extract _transcript_file private field from the first user message in compacted array.
+     */
+    private String extractTranscriptFile(JsonArray compacted) {
+        for (JsonElement el : compacted) {
+            if (!el.isJsonObject()) continue;
+            JsonObject msg = el.getAsJsonObject();
+            if ("user".equals(msg.has("role") ? msg.get("role").getAsString() : "")
+                    && msg.has("_transcript_file") && !msg.get("_transcript_file").isJsonNull()) {
+                return msg.get("_transcript_file").getAsString();
+            }
+        }
+        return null;
     }
 
     /**

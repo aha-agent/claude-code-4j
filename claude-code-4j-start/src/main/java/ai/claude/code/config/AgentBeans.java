@@ -98,8 +98,9 @@ public class AgentBeans {
     @Bean
     public TeammateRunner teammateRunner(OpenAiClient client,
                                          MessageBus messageBus,
-                                         TaskStore taskStore) {
-        return new TeammateRunner(client, workDir, messageBus, taskStore);
+                                         TaskStore taskStore,
+                                         SessionStore sessionStore) {
+        return new TeammateRunner(client, workDir, messageBus, taskStore, sessionStore);
     }
 
     /**

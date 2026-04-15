@@ -203,7 +203,7 @@ public class ContextCompactor {
         System.out.println("[Compact] Auto-compact triggered! Saving transcript and summarizing...");
 
         // 步骤 1：保存完整对话记录到文件（不可逆压缩前的备份）
-        saveTranscript(messages);
+        String transcriptFile = saveTranscript(messages);
 
         // 步骤 2：调用 LLM 对整个对话生成摘要
         String summary = generateSummary(messages, systemPrompt);
@@ -212,9 +212,14 @@ public class ContextCompactor {
         // 步骤 3：构造压缩后的消息列表
         // 仅包含 2 条消息：一条 user 消息承载摘要内容，一条 assistant 消息表示确认
         JsonArray compacted = new JsonArray();
-        compacted.add(OpenAiClient.userMessage(
+        JsonObject summaryMsg = OpenAiClient.userMessage(
                 "[Context was compacted. Previous conversation summary:]\n" + summary
-                        + "\n\n[Continue helping the user from where we left off.]"));
+                        + "\n\n[Continue helping the user from where we left off.]");
+        // 将 transcript 文件名写入私有字段（以 _ 开头，发 API 前会被剥离）
+        if (transcriptFile != null) {
+            summaryMsg.addProperty("_transcript_file", transcriptFile);
+        }
+        compacted.add(summaryMsg);
         compacted.add(OpenAiClient.assistantMessage(
                 "Understood. I have the context from the summary. Continuing."));
         return compacted;
@@ -272,15 +277,22 @@ public class ContextCompactor {
      *
      * @param messages 要归档的完整消息列表
      */
-    private void saveTranscript(JsonArray messages) {
+    /**
+     * 保存 transcript 并返回文件名（不含路径）。
+     * @return 文件名，如 "transcript_20260415_143052.json"；失败返回 null
+     */
+    private String saveTranscript(JsonArray messages) {
         try {
             String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-            String filename = transcriptsDir + "/transcript_" + timestamp + ".json";
+            String baseName  = "transcript_" + timestamp + ".json";
+            String filename  = transcriptsDir + "/" + baseName;
             Files.write(Paths.get(filename),
                     GSON.toJson(messages).getBytes(StandardCharsets.UTF_8));
             System.out.println("[Compact] Transcript saved to: " + filename);
+            return baseName;
         } catch (IOException e) {
             System.err.println("[Compact] Failed to save transcript: " + e.getMessage());
+            return null;
         }
     }
 

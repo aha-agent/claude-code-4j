@@ -133,6 +133,38 @@ public class SessionStore {
         return result;
     }
 
+    /**
+     * Teammate 信息记录，供 GET /api/sessions/{sessionId}/teammates 使用。
+     */
+    public record TeammateInfo(String name, String sessionId) {}
+
+    /**
+     * 列出属于指定 Lead 会话的所有 Teammate 会话文件。
+     * 命名约定：{leadSessionId}-tm-{name}.json
+     * List teammate session files for a given lead session.
+     * Naming convention: {leadSessionId}-tm-{name}.json
+     *
+     * @param leadSessionId Lead 会话 ID
+     * @return Teammate 信息列表
+     */
+    public java.util.List<TeammateInfo> listTeammates(String leadSessionId) {
+        File dir = new File(sessionsDir);
+        File[] files = dir.listFiles((d, name) -> name.endsWith(".json"));
+        if (files == null) return java.util.Collections.emptyList();
+
+        String prefix = leadSessionId + "-tm-";
+        java.util.List<TeammateInfo> result = new java.util.ArrayList<>();
+        for (File f : files) {
+            String baseName = f.getName(); // e.g. "20260415120000-abc-tm-alice.json"
+            if (!baseName.startsWith(prefix)) continue;
+            // strip prefix and .json suffix to get teammate name
+            String tmName = baseName.substring(prefix.length(), baseName.length() - 5);
+            String tmSessionId = baseName.substring(0, baseName.length() - 5);
+            result.add(new TeammateInfo(tmName, tmSessionId));
+        }
+        return result;
+    }
+
     private Path sessionPath(String sessionId) {
         // 防目录遍历：只取文件名部分 / Prevent path traversal: use basename only
         String safe = new File(sessionId).getName();

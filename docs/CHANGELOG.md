@@ -5,6 +5,38 @@ Each version corresponds to one conversation iteration.
 
 ---
 
+## v0.20 — 2026-04-16
+
+### 需求
+> Playground 改为完整网站结构：首页（学习指南）→ API 文档 → Playground，三段式全局菜单
+
+### 变更
+
+#### `PageController.java`（start/controller，新建）
+- `GET /`          → 读取 `docs/study/index.html` 直接返回（URL 保持 `/`，修改 HTML 后刷新即生效）
+- `GET /api`       → 读取 `docs/study/api.html`
+- `GET /playground`→ 读取 classpath `static/playground.html`
+
+#### `static/index.html` → `static/playground.html`（git mv 重命名）
+- Playground 页面移至 `/playground`，不再占用根路径
+
+#### `static/playground.html`（topbar）
+- `.tb-doc-links` → 替换为 `.tb-nav` + `.tb-nav-link`
+- 三个导航项：**首页**（`/`）、**API 文档**（`/api`）、**Playground**（`/playground`，active 高亮）
+
+#### `docs/study/index.html`（nav）
+- 新增 `nav-active`（首页高亮）和 `nav-playground`（带边框按钮样式）CSS
+- nav 链接更新：首页 `→ /`、API 文档 `→ /api`、Playground `→ /playground`（新增）
+- Hero 按钮新增 "Playground →" 入口
+
+#### `docs/study/api.html`（topbar）
+- 导航改为：首页（`/`）、API 文档（`/api`，active）、各锚点、Playground 按钮（`/playground`）
+
+#### `WebConfig.java`
+- 移除 `/study/**` 静态资源映射（已被 PageController 直接读文件替代）
+
+---
+
 ## v0.19 — 2026-04-16
 
 ### 需求

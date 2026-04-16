@@ -32,6 +32,13 @@ nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100;
 .nav-links { display: flex; gap: 24px; margin-left: auto; }
 .nav-links a { font-size: 13px; color: var(--t2); text-decoration: none; transition: color 0.2s; }
 .nav-links a:hover { color: var(--cyan); }
+.nav-links a.nav-active { color: var(--cyan); font-weight: 600; }
+.nav-links a.nav-playground {
+  padding: 4px 12px; border-radius: 6px;
+  background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.25);
+  color: var(--cyan); font-weight: 600;
+}
+.nav-links a.nav-playground:hover { background: rgba(0,212,255,0.18); }
 
 /* ── HERO ── */
 .hero { position: relative; min-height: 100vh; display: flex; flex-direction: column;
@@ -256,11 +263,13 @@ footer a { color: var(--cyan); text-decoration: none; }
 <nav>
   <div class="nav-logo">claude-code-java</div>
   <div class="nav-links">
+    <a href="/" class="nav-active">首页</a>
     <a href="#quickstart">快速上手</a>
     <a href="#architecture">架构</a>
     <a href="#capabilities">能力</a>
-    <a href="api.html">API 文档</a>
-    <a href="https://github.com/fluentlc/claude-code-java" target="_blank">GitHub →</a>
+    <a href="/api">API 文档</a>
+    <a href="/playground" class="nav-playground">Playground →</a>
+    <a href="https://github.com/fluentlc/claude-code-java" target="_blank">GitHub</a>
   </div>
 </nav>
 
@@ -280,7 +289,8 @@ footer a { color: var(--cyan); text-decoration: none; }
     <div class="hero-btns">
       <a href="#quickstart" class="btn btn-primary">快速开始</a>
       <a href="https://github.com/fluentlc/claude-code-java" class="btn btn-outline" target="_blank">GitHub →</a>
-      <a href="api.html" class="btn btn-outline">API 文档</a>
+      <a href="/api" class="btn btn-outline">API 文档</a>
+      <a href="/playground" class="btn btn-outline">Playground →</a>
     </div>
   </div>
 </div>

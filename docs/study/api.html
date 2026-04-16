@@ -376,7 +376,7 @@ footer a:hover { text-decoration:underline; }
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <a href="index.html" class="topbar-logo">
+  <a href="/" class="topbar-logo">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
     </svg>
@@ -384,11 +384,13 @@ footer a:hover { text-decoration:underline; }
   </a>
   <span class="topbar-badge">REST API</span>
   <nav class="topbar-nav">
-    <a href="index.html">主页</a>
+    <a href="/">首页</a>
+    <a href="/api" class="active">API 文档</a>
     <a href="#sync">同步接口</a>
     <a href="#sse">SSE 流式</a>
     <a href="#sessions">会话接口</a>
     <a href="#config">配置</a>
+    <a href="/playground" style="padding:3px 10px;border-radius:5px;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.25);color:var(--cyan);font-weight:600;">Playground →</a>
   </nav>
 </div>
 

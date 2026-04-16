@@ -139,7 +139,17 @@ body {
 @keyframes spin   { to{transform:rotate(360deg)} }
 @keyframes blink  { 50%{opacity:0} }
 
-.tb-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.tb-doc-links { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+.tb-doc-link {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 6px;
+  font-size: 12px; font-weight: 510; color: var(--t3);
+  text-decoration: none; transition: background .15s, color .15s;
+  letter-spacing: -0.01em;
+}
+.tb-doc-link:hover { background: var(--bg-hover); color: var(--t2); }
+.tb-doc-link svg { width: 12px; height: 12px; flex-shrink: 0; opacity: .7; }
+.tb-right { display: flex; align-items: center; gap: 8px; }
 
 .token-info {
   display: flex;
@@ -898,6 +908,23 @@ textarea#msgInput::placeholder { color: var(--t4); }
     <div class="status-dot" id="connPip"></div>
     <span id="connText">就绪</span>
   </div>
+
+  <div class="tb-doc-links">
+    <a href="/study/index.html" target="_blank" class="tb-doc-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+      学习指南
+    </a>
+    <a href="/study/api.html" target="_blank" class="tb-doc-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h1m5 0h1M9 15h6"/>
+      </svg>
+      API 文档
+    </a>
+  </div>
+
+  <div class="tb-sep"></div>
 
   <div class="tb-right">
     <div class="token-info">

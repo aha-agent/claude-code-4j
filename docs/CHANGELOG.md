@@ -5,6 +5,26 @@ Each version corresponds to one conversation iteration.
 
 ---
 
+## v0.19 — 2026-04-16
+
+### 需求
+> Web Playground 顶栏应有引导链接，可直接跳转到学习指南和 API 文档页面
+
+### 变更
+
+#### `index.html` CSS + HTML（topbar）
+- 新增 `.tb-doc-links`：链接组容器，`margin-left: auto` 将其推到右侧
+- 新增 `.tb-doc-link`：单个链接样式（hover 背景 + 文字浅色图标，Linear 风格）
+- topbar 新增两个链接（在 `tb-right` 左侧，以 `tb-sep` 分隔）：
+  - **学习指南** → `/study/index.html`（新 Tab 打开）
+  - **API 文档** → `/study/api.html`（新 Tab 打开）
+
+#### `WebConfig.java`（start/config，新建）
+- 实现 `WebMvcConfigurer.addResourceHandlers()`
+- 将 `{workdir}/docs/study/` 映射到 `/study/**`，Spring Boot 静态资源服务直接暴露 docs/study/ 目录
+
+---
+
 ## v0.18 — 2026-04-16
 
 ### 需求

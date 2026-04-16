@@ -275,7 +275,7 @@ body {
 .messages::-webkit-scrollbar { width: 4px; }
 .messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 2px; }
 
-.msg-wrap { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+.msg-wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; }
 
 /* Empty state */
 .empty-state {
@@ -532,7 +532,7 @@ body {
 
 /* ── Input area ── */
 .input-wrap {
-  max-width: 720px;
+  max-width: 860px;
   margin: 0 auto;
   width: 100%;
   padding: 6px 24px 20px;
@@ -759,7 +759,7 @@ textarea#msgInput::placeholder { color: var(--t4); }
 /* ── Workspace Drawer ── */
 .workspace-drawer {
   position: fixed; right: 0; top: 48px; bottom: 0;
-  width: 440px;
+  width: 560px;
   background: var(--bg-panel);
   border-left: 1px solid var(--b-sub);
   transform: translateX(100%);
@@ -1277,7 +1277,7 @@ function openDrawer(type, data) {
   if (type === 'teammate')   renderTeammateDrawer(data);
   if (type === 'compact')    renderCompactDrawer();
   drawer.classList.add('open');
-  layout.style.marginRight = '440px';
+  layout.style.marginRight = '560px';
 }
 
 function closeDrawer() {

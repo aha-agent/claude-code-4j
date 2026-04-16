@@ -4,152 +4,310 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>claude-code-java — Java AI Agent Harness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <style>
-  :root {
-    --bg:        #0d1117;
-    --surface:   #161b22;
-    --border:    #30363d;
-    --amber:     #f0a500;
-    --amber-dim: #7a5200;
-    --cyan:      #22d3ee;
-    --cyan-dim:  #0c4a56;
-    --text:      #c9d1d9;
-    --text-dim:  #8b949e;
-    --green:     #3fb950;
-    --purple:    #bc8cff;
-    --red:       #f85149;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.6; }
+:root {
+  --bg: #050d1a; --bg2: #0a1628; --bg3: #0f1e38;
+  --cyan: #00d4ff; --cyan2: rgba(0,212,255,0.15); --cyan3: rgba(0,212,255,0.06);
+  --purple: #9d71ff; --purple2: rgba(157,113,255,0.15);
+  --green: #4afa7a; --green2: rgba(74,250,122,0.12);
+  --amber: #ffb347; --amber2: rgba(255,179,71,0.15);
+  --pink: #ff6b9d;
+  --t1: #e2e8f0; --t2: #94a3b8; --t3: #4a6080; --t4: #2a3a50;
+  --border: rgba(0,212,255,0.12); --border2: rgba(0,212,255,0.06);
+  --mono: 'JetBrains Mono', 'Courier New', monospace;
+  --sans: 'Inter', system-ui, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--t1); font-family: var(--sans); line-height: 1.6; overflow-x: hidden; }
 
-  /* ─── hero ─── */
-  .hero { background: linear-gradient(135deg, #0d1117 0%, #161b22 60%, #0c1a2e 100%); border-bottom: 1px solid var(--border); padding: 80px 24px 60px; text-align: center; }
-  .badge { display: inline-block; background: var(--amber-dim); color: var(--amber); font-size: 12px; font-weight: 600; letter-spacing: 1px; padding: 4px 12px; border-radius: 20px; margin-bottom: 20px; text-transform: uppercase; }
-  h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 700; color: #fff; margin-bottom: 16px; }
-  h1 span { color: var(--amber); }
-  .subtitle { font-size: 1.1rem; color: var(--text-dim); max-width: 600px; margin: 0 auto 32px; }
-  .hero-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-  .btn { display: inline-block; padding: 10px 24px; border-radius: 6px; font-weight: 600; font-size: 14px; text-decoration: none; transition: opacity 0.2s; }
-  .btn-primary { background: var(--amber); color: #000; }
-  .btn-outline { border: 1px solid var(--border); color: var(--text); }
-  .btn:hover { opacity: 0.85; }
+/* ── NAV ── */
+nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(5,13,26,0.85); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border); padding: 0 32px;
+  display: flex; align-items: center; gap: 32px; height: 56px; }
+.nav-logo { font-size: 15px; font-weight: 700; color: var(--cyan); font-family: var(--mono); white-space: nowrap; }
+.nav-links { display: flex; gap: 24px; margin-left: auto; }
+.nav-links a { font-size: 13px; color: var(--t2); text-decoration: none; transition: color 0.2s; }
+.nav-links a:hover { color: var(--cyan); }
 
-  /* ─── sections ─── */
-  section { max-width: 1100px; margin: 0 auto; padding: 60px 24px; }
-  h2 { font-size: 1.5rem; font-weight: 700; color: var(--amber); margin-bottom: 32px; display: flex; align-items: center; gap: 10px; }
-  h2::before { content: ''; display: block; width: 4px; height: 22px; background: var(--amber); border-radius: 2px; }
-  h3 { font-size: 1.05rem; font-weight: 600; color: #fff; margin-bottom: 8px; }
-  p { color: var(--text-dim); margin-bottom: 12px; }
+/* ── HERO ── */
+.hero { position: relative; min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  padding: 80px 24px 60px; overflow: hidden; }
+#hero-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hero-content { position: relative; z-index: 1; max-width: 800px; }
+.hero-badge { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 28px; }
+.badge { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+  padding: 4px 12px; border-radius: 20px; border: 1px solid; font-family: var(--mono); }
+.badge-cyan { background: var(--cyan2); border-color: var(--cyan); color: var(--cyan); }
+.badge-purple { background: var(--purple2); border-color: var(--purple); color: var(--purple); }
+.badge-green { background: var(--green2); border-color: var(--green); color: var(--green); }
+.hero-title { font-size: clamp(2.4rem, 6vw, 4rem); font-weight: 700; color: #fff;
+  margin-bottom: 16px; letter-spacing: -1px; line-height: 1.1; }
+.hero-title span { color: var(--cyan); text-shadow: 0 0 30px rgba(0,212,255,0.5); }
+.hero-sub { font-size: 1.1rem; color: var(--t2); max-width: 560px; margin: 0 auto 36px; }
+.hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.btn { display: inline-block; padding: 10px 24px; border-radius: 6px; font-weight: 600;
+  font-size: 14px; text-decoration: none; transition: all 0.2s; cursor: pointer; border: none; }
+.btn-primary { background: var(--cyan); color: #000; }
+.btn-primary:hover { background: #33dcff; box-shadow: 0 0 20px rgba(0,212,255,0.4); }
+.btn-outline { border: 1px solid var(--border); color: var(--t2); background: transparent; }
+.btn-outline:hover { border-color: var(--cyan); color: var(--cyan); }
 
-  /* ─── architecture diagram ─── */
-  .arch { display: grid; gap: 2px; }
-  .arch-layer { display: flex; align-items: stretch; gap: 2px; }
-  .arch-label { width: 140px; min-width: 140px; display: flex; align-items: center; justify-content: flex-end; padding-right: 16px; font-size: 12px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.5px; text-transform: uppercase; }
-  .arch-boxes { display: flex; gap: 2px; flex: 1; }
-  .arch-box { flex: 1; padding: 12px 10px; border-radius: 4px; font-size: 12px; font-weight: 500; text-align: center; border: 1px solid; }
-  .layer-start   { background: #1a1000; border-color: var(--amber-dim);  color: var(--amber); }
-  .layer-agent   { background: #001a1f; border-color: var(--cyan-dim);   color: var(--cyan); }
-  .layer-cap     { background: #0d1f0d; border-color: #1a4d1a;           color: var(--green); }
-  .layer-core    { background: #1a0d1a; border-color: #3d1a5e;           color: var(--purple); }
+/* ── SECTIONS ── */
+section { max-width: 1100px; margin: 0 auto; padding: 80px 24px; }
+.section-title { font-size: 1.6rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
+.section-title span { color: var(--cyan); }
+.section-sub { color: var(--t2); margin-bottom: 40px; font-size: 0.95rem; }
+.divider { border: none; border-top: 1px solid var(--border2); }
 
-  /* ─── capability grid ─── */
-  .cap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-  .cap-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; transition: border-color 0.2s; }
-  .cap-card:hover { border-color: var(--amber-dim); }
-  .cap-icon { font-size: 1.4rem; margin-bottom: 8px; }
-  .cap-card h3 { color: var(--cyan); margin-bottom: 6px; }
-  .cap-card p { font-size: 13px; margin: 0; }
+/* ── FADE IN ── */
+.fade-in { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.fade-in.visible { opacity: 1; transform: translateY(0); }
 
-  /* ─── tool provider table ─── */
-  .tp-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-  .tp-item { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; }
-  .tp-item .name { font-size: 13px; font-weight: 600; color: var(--amber); font-family: 'Courier New', monospace; margin-bottom: 4px; }
-  .tp-item .tools { font-size: 12px; color: var(--text-dim); font-family: 'Courier New', monospace; }
+/* ── CORE LOOP ── */
+.loop-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+@media (max-width: 700px) { .loop-wrap { grid-template-columns: 1fr; } }
+.code-block { background: #020810; border: 1px solid var(--border);
+  border-radius: 10px; padding: 24px; font-family: var(--mono); font-size: 13px;
+  position: relative; overflow: hidden; }
+.code-block::before { content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 1px; background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  animation: scan 3s linear infinite; }
+@keyframes scan { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+.code-line { display: block; padding: 3px 8px; border-radius: 4px; color: #6272a4;
+  transition: all 0.3s; margin: 1px 0; white-space: pre; }
+.code-line.active { color: #f8f8f2; background: rgba(0,212,255,0.08); border-left: 2px solid var(--cyan); }
+.code-kw { color: #ff79c6; }
+.code-str { color: #f1fa8c; }
+.code-comment { color: #6272a4; font-style: italic; }
+.code-fn { color: #50fa7b; }
+.loop-steps { display: flex; flex-direction: column; gap: 12px; }
+.loop-step { background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 14px 16px; transition: all 0.3s; }
+.loop-step.active { border-color: var(--cyan); background: var(--cyan3); }
+.loop-step-num { font-size: 10px; font-weight: 700; color: var(--cyan); font-family: var(--mono); margin-bottom: 4px; }
+.loop-step-title { font-size: 14px; font-weight: 600; color: var(--t1); margin-bottom: 2px; }
+.loop-step-desc { font-size: 12px; color: var(--t2); }
 
-  /* ─── quickstart ─── */
-  .qs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-  @media (max-width: 700px) { .qs-grid { grid-template-columns: 1fr; } }
-  .qs-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; }
-  .qs-card h3 { color: var(--cyan); margin-bottom: 12px; }
-  pre { background: #0d1117; border: 1px solid var(--border); border-radius: 6px; padding: 14px; font-size: 13px; overflow-x: auto; color: var(--text); line-height: 1.5; }
-  code { font-family: 'Courier New', monospace; }
+/* ── SEQUENCE DIAGRAM ── */
+.seq-wrap { background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden; }
+.seq-header { display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid var(--border); }
+.seq-title { font-size: 13px; font-weight: 600; color: var(--t2); font-family: var(--mono); }
+.seq-controls { display: flex; gap: 8px; }
+.seq-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--t2);
+  font-size: 12px; padding: 4px 12px; border-radius: 4px; cursor: pointer;
+  transition: all 0.2s; font-family: var(--mono); }
+.seq-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+#seq-canvas { width: 100%; display: block; }
+.seq-status { padding: 10px 20px; font-size: 12px; color: var(--t3); font-family: var(--mono);
+  border-top: 1px solid var(--border); min-height: 36px; }
 
-  /* ─── extend section ─── */
-  .extend-steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; counter-reset: step; }
-  .extend-step { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; position: relative; }
-  .extend-step::before { counter-increment: step; content: counter(step); position: absolute; top: -12px; left: 16px; background: var(--amber); color: #000; font-size: 12px; font-weight: 700; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-  .extend-step h3 { color: #fff; margin-bottom: 6px; }
+/* ── ARCHITECTURE ── */
+.arch-wrap { display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }
+@media (max-width: 900px) { .arch-wrap { grid-template-columns: 1fr; } }
+.arch-layers { display: flex; flex-direction: column; gap: 6px; }
+.arch-layer { border: 1px solid; border-radius: 8px; padding: 14px 16px;
+  cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden; }
+.arch-layer::after { content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.03) 100%);
+  opacity: 0; transition: opacity 0.3s; }
+.arch-layer:hover::after, .arch-layer.active::after { opacity: 1; }
+.arch-layer-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.arch-layer-tag { font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  padding: 2px 8px; border-radius: 10px; font-family: var(--mono); }
+.arch-layer-name { font-size: 14px; font-weight: 600; }
+.arch-layer-boxes { display: flex; flex-wrap: wrap; gap: 6px; }
+.arch-box { font-size: 11px; padding: 3px 9px; border-radius: 4px;
+  font-family: var(--mono); border: 1px solid rgba(255,255,255,0.08); }
+.layer-start .arch-layer-tag { background: var(--amber2); color: var(--amber); }
+.layer-start { border-color: rgba(255,179,71,0.25); }
+.layer-start .arch-layer-name { color: var(--amber); }
+.layer-start .arch-box { background: rgba(255,179,71,0.06); color: var(--amber); }
+.layer-start.active { background: rgba(255,179,71,0.06); border-color: var(--amber); box-shadow: 0 0 20px rgba(255,179,71,0.1); }
+.layer-agent .arch-layer-tag { background: var(--cyan2); color: var(--cyan); }
+.layer-agent { border-color: rgba(0,212,255,0.25); }
+.layer-agent .arch-layer-name { color: var(--cyan); }
+.layer-agent .arch-box { background: rgba(0,212,255,0.06); color: var(--cyan); }
+.layer-agent.active { background: rgba(0,212,255,0.06); border-color: var(--cyan); box-shadow: 0 0 20px rgba(0,212,255,0.1); }
+.layer-cap .arch-layer-tag { background: var(--green2); color: var(--green); }
+.layer-cap { border-color: rgba(74,250,122,0.2); }
+.layer-cap .arch-layer-name { color: var(--green); }
+.layer-cap .arch-box { background: rgba(74,250,122,0.05); color: var(--green); }
+.layer-cap.active { background: rgba(74,250,122,0.05); border-color: var(--green); box-shadow: 0 0 20px rgba(74,250,122,0.08); }
+.layer-tool .arch-layer-tag { background: var(--purple2); color: var(--purple); }
+.layer-tool { border-color: rgba(157,113,255,0.2); }
+.layer-tool .arch-layer-name { color: var(--purple); }
+.layer-tool .arch-box { background: rgba(157,113,255,0.06); color: var(--purple); }
+.layer-tool.active { background: rgba(157,113,255,0.06); border-color: var(--purple); box-shadow: 0 0 20px rgba(157,113,255,0.1); }
+.layer-core .arch-layer-tag { background: rgba(255,107,157,0.15); color: var(--pink); }
+.layer-core { border-color: rgba(255,107,157,0.2); }
+.layer-core .arch-layer-name { color: var(--pink); }
+.layer-core .arch-box { background: rgba(255,107,157,0.05); color: var(--pink); }
+.layer-core.active { background: rgba(255,107,157,0.05); border-color: var(--pink); box-shadow: 0 0 20px rgba(255,107,157,0.08); }
+.arch-detail { background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px; position: sticky; top: 72px; min-height: 200px; }
+.arch-detail-name { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+.arch-detail-desc { font-size: 13px; color: var(--t2); line-height: 1.7; }
+.arch-detail-items { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.arch-detail-item { font-size: 12px; color: var(--t2); padding: 8px 10px;
+  background: var(--bg3); border-radius: 6px; border-left: 2px solid; }
 
-  /* ─── footer ─── */
-  footer { border-top: 1px solid var(--border); padding: 24px; text-align: center; color: var(--text-dim); font-size: 13px; }
-  footer a { color: var(--amber); text-decoration: none; }
-  .divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+/* ── TEAMS DIAGRAM ── */
+#teams-canvas { width: 100%; display: block; }
+
+/* ── COMPRESSION ── */
+.compress-wrap { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+@media (max-width: 700px) { .compress-wrap { grid-template-columns: 1fr; } }
+.compress-card { background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px; }
+.compress-card-title { font-size: 13px; font-weight: 700; font-family: var(--mono);
+  margin-bottom: 4px; }
+.compress-card-sub { font-size: 11px; color: var(--t2); margin-bottom: 14px; }
+.msg-list { display: flex; flex-direction: column; gap: 3px; min-height: 180px; }
+.msg-bar { height: 22px; border-radius: 3px; display: flex; align-items: center;
+  padding: 0 8px; font-size: 10px; font-family: var(--mono); transition: all 0.5s;
+  overflow: hidden; white-space: nowrap; }
+.msg-user { background: rgba(0,212,255,0.12); border: 1px solid rgba(0,212,255,0.2); color: var(--cyan); }
+.msg-ai   { background: rgba(157,113,255,0.10); border: 1px solid rgba(157,113,255,0.18); color: var(--purple); }
+.msg-tool { background: rgba(74,250,122,0.08); border: 1px solid rgba(74,250,122,0.15); color: var(--green); }
+.msg-compact { background: rgba(255,179,71,0.08); border: 1px solid rgba(255,179,71,0.2); color: var(--amber); }
+.msg-bar.compressed { height: 8px; opacity: 0.4; padding: 0; }
+.compress-layer { font-size: 11px; margin-top: 10px; padding: 6px 10px;
+  border-radius: 4px; font-family: var(--mono); }
+.layer1-tag { background: rgba(0,212,255,0.08); color: var(--cyan); border: 1px solid rgba(0,212,255,0.2); }
+.layer2-tag { background: rgba(255,179,71,0.08); color: var(--amber); border: 1px solid rgba(255,179,71,0.2); }
+.layer3-tag { background: rgba(157,113,255,0.08); color: var(--purple); border: 1px solid rgba(157,113,255,0.2); }
+
+/* ── SSE TERMINAL ── */
+.terminal { background: #020810; border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden; }
+.terminal-bar { display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+  border-bottom: 1px solid var(--border); background: var(--bg2); }
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.dot-red { background: #ff5f57; } .dot-yellow { background: #ffbd2e; } .dot-green { background: #28c840; }
+.terminal-title { font-size: 12px; color: var(--t3); font-family: var(--mono); margin-left: 8px; }
+.terminal-body { padding: 16px; font-family: var(--mono); font-size: 12px;
+  line-height: 1.8; min-height: 280px; }
+.sse-line { display: flex; gap: 12px; opacity: 0; animation: fadeUp 0.3s ease forwards; }
+@keyframes fadeUp { from { opacity:0; transform: translateY(4px); } to { opacity:1; transform: none; } }
+.sse-event { color: var(--cyan); min-width: 120px; }
+.sse-data { color: var(--t2); }
+.sse-event.think { color: var(--purple); }
+.sse-event.tool  { color: var(--green); }
+.sse-event.team  { color: var(--amber); }
+.sse-event.done  { color: var(--pink); }
+
+/* ── CAPABILITIES ── */
+.cap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.cap-card { background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px; transition: all 0.25s; cursor: default; }
+.cap-card:hover { border-color: var(--cyan); transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0,212,255,0.08); }
+.cap-icon { font-size: 1.6rem; margin-bottom: 10px; }
+.cap-name { font-size: 14px; font-weight: 700; color: var(--cyan); margin-bottom: 6px; font-family: var(--mono); }
+.cap-desc { font-size: 13px; color: var(--t2); margin-bottom: 10px; }
+.cap-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.cap-tag { font-size: 10px; padding: 2px 7px; border-radius: 3px; font-family: var(--mono);
+  background: var(--cyan3); border: 1px solid rgba(0,212,255,0.2); color: var(--cyan); }
+
+/* ── QUICKSTART TABS ── */
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+.tab { padding: 8px 18px; font-size: 13px; font-weight: 500; cursor: pointer;
+  color: var(--t2); border-bottom: 2px solid transparent; transition: all 0.2s; }
+.tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+pre { background: #020810; border: 1px solid var(--border); border-radius: 8px;
+  padding: 16px 18px; font-family: var(--mono); font-size: 13px; overflow-x: auto;
+  color: var(--t1); line-height: 1.7; margin-bottom: 12px; }
+.c-comment { color: var(--t3); } .c-cmd { color: var(--green); }
+.c-flag { color: var(--amber); } .c-str { color: var(--cyan); }
+
+/* ── PLAYGROUND FEATURES ── */
+.playground-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap: 14px; }
+.pg-card { background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px; transition: all 0.2s; }
+.pg-card:hover { border-color: var(--purple); }
+.pg-icon { font-size: 1.2rem; margin-bottom: 8px; }
+.pg-name { font-size: 13px; font-weight: 600; color: var(--purple); margin-bottom: 4px; }
+.pg-desc { font-size: 12px; color: var(--t2); }
+
+/* ── FOOTER ── */
+footer { border-top: 1px solid var(--border); padding: 28px 24px;
+  text-align: center; color: var(--t3); font-size: 13px; }
+footer a { color: var(--cyan); text-decoration: none; }
+
+/* ── FLOW ARROW (CSS) ── */
+.flow-arrow { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.flow-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--cyan), transparent); }
+.flow-arrow-head { width: 0; height: 0; border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent; border-left: 8px solid var(--cyan); }
 </style>
 </head>
 <body>
 
-<!-- ═══ HERO ═══ -->
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">claude-code-java</div>
+  <div class="nav-links">
+    <a href="#quickstart">快速上手</a>
+    <a href="#architecture">架构</a>
+    <a href="#capabilities">能力</a>
+    <a href="api.html">API 文档</a>
+    <a href="https://github.com/fluentlc/claude-code-java" target="_blank">GitHub →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
 <div class="hero">
-  <div class="badge">Open Source · Java 17 · MIT License</div>
-  <h1>claude-code-<span>java</span></h1>
-  <p class="subtitle">可嵌入任何 Java 应用的 AI Agent 引擎<br>
-    Embeddable AI Agent Harness for Java — CLI &amp; REST API</p>
-  <div class="hero-buttons">
-    <a href="https://github.com/fluentlc/claude-code-java" class="btn btn-primary">GitHub →</a>
-    <a href="api.html" class="btn btn-outline">REST API 文档</a>
+  <canvas id="hero-canvas"></canvas>
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span class="badge badge-cyan">Java 17</span>
+      <span class="badge badge-cyan">Spring Boot 3.2</span>
+      <span class="badge badge-purple">Agent Teams</span>
+      <span class="badge badge-green">Web Playground</span>
+      <span class="badge badge-cyan">MIT License</span>
+    </div>
+    <h1 class="hero-title">claude-code-<span>java</span></h1>
+    <p class="hero-sub">可嵌入任何 Java 应用的 AI Agent 引擎<br>三层交互：CLI · REST API · Web Playground</p>
+    <div class="hero-btns">
+      <a href="#quickstart" class="btn btn-primary">快速开始</a>
+      <a href="https://github.com/fluentlc/claude-code-java" class="btn btn-outline" target="_blank">GitHub →</a>
+      <a href="api.html" class="btn btn-outline">API 文档</a>
+    </div>
   </div>
 </div>
 
-<!-- ═══ ARCHITECTURE ═══ -->
-<section>
-  <h2>4 层架构</h2>
-
-  <div class="arch">
-    <div class="arch-layer">
-      <div class="arch-label">Start</div>
-      <div class="arch-boxes">
-        <div class="arch-box layer-start">Application.java<br><small>Spring Boot 3.2 入口</small></div>
-        <div class="arch-box layer-start">CliRunner<br><small>REPL / CLI 模式</small></div>
-        <div class="arch-box layer-start">ChatController<br><small>REST API</small></div>
-        <div class="arch-box layer-start">AgentBeans<br><small>Spring DI 配置</small></div>
+<!-- SECTION: CORE LOOP -->
+<section id="core-loop">
+  <div class="fade-in">
+    <div class="section-title">AI Agent <span>核心原理</span></div>
+    <p class="section-sub">所有 Agent 框架的本质都是一个 while 循环 — claude-code-java 将这个循环抽象为可嵌入任何 Java 应用的 AgentLoop</p>
+    <div class="loop-wrap">
+      <div class="code-block">
+        <span class="code-line" id="cl0"><span class="code-comment">// AgentLoop.java — 核心 while 循环</span></span>
+        <span class="code-line" id="cl1"><span class="code-kw">while</span> (<span class="code-str">"tool_calls"</span>.equals(stopReason)) {</span>
+        <span class="code-line" id="cl2">  response = llm.<span class="code-fn">chat</span>(messages, tools);</span>
+        <span class="code-line" id="cl3">  stopReason = response.<span class="code-fn">finishReason</span>();</span>
+        <span class="code-line" id="cl4">  tools.<span class="code-fn">execute</span>(response.<span class="code-fn">toolCalls</span>());</span>
+        <span class="code-line" id="cl5">  messages.<span class="code-fn">appendResults</span>(toolResults);</span>
+        <span class="code-line" id="cl6">  listener.<span class="code-fn">onToolEnd</span>(toolResults);</span>
+        <span class="code-line" id="cl7">}</span>
+        <span class="code-line" id="cl8"><span class="code-comment">// stop_reason="end_turn" → 输出最终回复</span></span>
+        <span class="code-line" id="cl9">listener.<span class="code-fn">onTextDelta</span>(response.<span class="code-fn">text</span>());</span>
       </div>
-    </div>
-    <div style="height:4px"></div>
-    <div class="arch-layer">
-      <div class="arch-label">Agent</div>
-      <div class="arch-boxes">
-        <div class="arch-box layer-agent">AgentLoop<br><small>核心 while 循环</small></div>
-        <div class="arch-box layer-agent">AgentAssembler<br><small>组装工厂</small></div>
-        <div class="arch-box layer-agent">TeammateLoop<br><small>Teammate LLM 循环</small></div>
-        <div class="arch-box layer-agent">SlashRouter<br><small>/help /tasks /compact …</small></div>
-      </div>
-    </div>
-    <div style="height:4px"></div>
-    <div class="arch-layer">
-      <div class="arch-label">Capability</div>
-      <div class="arch-boxes">
-        <div class="arch-box layer-cap">TodoManager</div>
-        <div class="arch-box layer-cap">ContextCompactor</div>
-        <div class="arch-box layer-cap">BackgroundRunner</div>
-        <div class="arch-box layer-cap">TaskStore</div>
-        <div class="arch-box layer-cap">WorktreeManager</div>
-        <div class="arch-box layer-cap">SkillLoader</div>
-        <div class="arch-box layer-cap">MessageBus</div>
-        <div class="arch-box layer-cap">TeammateRunner</div>
-        <div class="arch-box layer-cap">SessionStore</div>
-      </div>
-    </div>
-    <div style="height:4px"></div>
-    <div class="arch-layer">
-      <div class="arch-label">Core</div>
-      <div class="arch-boxes">
-        <div class="arch-box layer-core">OpenAiClient</div>
-        <div class="arch-box layer-core">AnthropicClient</div>
-        <div class="arch-box layer-core">ClientFactory</div>
-        <div class="arch-box layer-core">BaseTools</div>
-        <div class="arch-box layer-core">SecurityUtils</div>
-        <div class="arch-box layer-core">ShellUtils</div>
-        <div class="arch-box layer-core">ToolHandler</div>
+      <div class="loop-steps">
+        <div class="loop-step" id="ls0"><div class="loop-step-num">STEP 0</div><div class="loop-step-title">判断循环条件</div><div class="loop-step-desc">stop_reason == "tool_calls" 时继续循环，"end_turn" 时退出</div></div>
+        <div class="loop-step" id="ls1"><div class="loop-step-num">STEP 1</div><div class="loop-step-title">调用 LLM API</div><div class="loop-step-desc">携带 messages 历史 + tool definitions，发起 streaming 请求</div></div>
+        <div class="loop-step" id="ls2"><div class="loop-step-num">STEP 2</div><div class="loop-step-title">执行工具调用</div><div class="loop-step-desc">ToolProvider 执行 bash/read/write/edit 等，结果收集为 toolResults</div></div>
+        <div class="loop-step" id="ls3"><div class="loop-step-num">STEP 3</div><div class="loop-step-title">追回结果 + 通知</div><div class="loop-step-desc">tool results 追加到 messages，AgentEventListener 推送 SSE 事件</div></div>
       </div>
     </div>
   </div>
@@ -157,170 +315,314 @@
 
 <hr class="divider" />
 
-<!-- ═══ 10 CAPABILITIES ═══ -->
-<section>
-  <h2>10 项核心能力</h2>
-  <div class="cap-grid">
-    <div class="cap-card">
-      <div class="cap-icon">✅</div>
-      <h3>TodoManager</h3>
-      <p>Agent 自追踪任务 — 多步骤任务状态流转（pending → in_progress → completed），超过阈值自动注入提醒。</p>
-    </div>
-    <div class="cap-card">
-      <div class="cap-icon">🧠</div>
-      <h3>ContextCompactor</h3>
-      <p>三层上下文压缩管道：微压缩（每轮替换旧 tool_result）→ 自动全量压缩（消息数阈值）→ 手动 /compact。</p>
-    </div>
-    <div class="cap-card">
-      <div class="cap-icon">⚡</div>
-      <h3>BackgroundRunner</h3>
-      <p>线程池异步执行耗时命令，任务完成后自动注入 system-reminder 通知，不阻塞主对话。</p>
-    </div>
-    <div class="cap-card">
-      <div class="cap-icon">💾</div>
-      <h3>TaskStore</h3>
-      <p>JSON 文件持久化任务 + 有向无环依赖图。重启后自动恢复。支持 task_poll 轮询认领。</p>
-    </div>
-    <div class="cap-card">
-      <div class="cap-icon">🌿</div>
-      <h3>WorktreeManager</h3>
-      <p>Git Worktree 目录级隔离 — 每个特性分支独立工作区，wt_run 在隔离目录执行命令。</p>
-    </div>
-    <div class="cap-card">
-      <div class="cap-icon">🎯</div>
-      <h3>SkillLoader</h3>
-      <p>按需加载技能 — 扫描 skills/ 目录，模型主动调用 load_skill 时注入 prompt，不预占 context。</p>
-    </div>
-    <div class="cap-card">
-      <div class="cap-icon">📨</div>
-      <h3>MessageBus</h3>
-      <p>JSONL 文件消息总线实现多 Agent 协作，lead/worker 通过 msg_send / msg_read 异步通信。</p>
-    </div>
-    <div class="cap-card">
-      <div class="cap-icon">🗂️</div>
-      <h3>SessionStore</h3>
-      <p>REST 会话持久化 — 每个 sessionId 对应 .sessions/{id}.json，进程重启后会话历史自动恢复。</p>
-    </div>
-    <div class="cap-card">
-      <div class="cap-icon">🔒</div>
-      <h3>SecurityUtils</h3>
-      <p>危险命令黑名单（rm -rf /、sudo …）+ 路径遍历防护，bash 工具和 wt_run 均受保护。</p>
-    </div>
-    <div class="cap-card">
-      <div class="cap-icon">🤝</div>
-      <h3>TeammateRunner</h3>
-      <p>Agent Teams 核心 — Lead 通过 spawn_teammate 动态创建 Teammate，每个 Teammate 在独立线程中运行完整 LLM 循环，通过 MessageBus 通信，通过 TaskStore 自主认领任务，60s 无工作自动退出。</p>
+<!-- SECTION: SEQUENCE DIAGRAM -->
+<section id="sequence">
+  <div class="fade-in">
+    <div class="section-title"><span>消息时序图</span> — AgentLoop 完整流程</div>
+    <p class="section-sub">从用户发起请求到 SSE 流式返回的完整事件链，包含思考、工具调用、结果回流的全过程</p>
+    <div class="seq-wrap">
+      <div class="seq-header">
+        <span class="seq-title">AgentLoop · SSE · ToolProvider 时序</span>
+        <div class="seq-controls">
+          <button class="seq-btn" id="seq-replay-btn" onclick="seqReplay()">↺ 重播</button>
+          <button class="seq-btn" id="seq-pause-btn" onclick="seqToggle()">⏸ 暂停</button>
+        </div>
+      </div>
+      <canvas id="seq-canvas" height="480"></canvas>
+      <div class="seq-status" id="seq-status">▶ 正在播放...</div>
     </div>
   </div>
 </section>
 
 <hr class="divider" />
 
-<!-- ═══ TOOL PROVIDERS ═══ -->
-<section>
-  <h2>8 个 ToolProvider</h2>
-  <div class="tp-list">
-    <div class="tp-item"><div class="name">FileTools</div><div class="tools">bash · read_file · write_file · edit_file</div></div>
-    <div class="tp-item"><div class="name">TodoTool</div><div class="tools">todo</div></div>
-    <div class="tp-item"><div class="name">SkillTool</div><div class="tools">load_skill</div></div>
-    <div class="tp-item"><div class="name">CompactTool</div><div class="tools">compact</div></div>
-    <div class="tp-item"><div class="name">TaskTools</div><div class="tools">task_create · task_list · task_get · task_update · task_poll</div></div>
-    <div class="tp-item"><div class="name">BackgroundTools</div><div class="tools">bg_submit · bg_status · bg_drain</div></div>
-    <div class="tp-item"><div class="name">TeamTools</div><div class="tools">msg_send · msg_read · task_poll · team_request_id · spawn_teammate · list_teammates</div></div>
-    <div class="tp-item"><div class="name">WorktreeTools</div><div class="tools">wt_create · wt_run · wt_status · wt_list</div></div>
-  </div>
-</section>
-
-<hr class="divider" />
-
-<!-- ═══ QUICKSTART ═══ -->
-<section>
-  <h2>快速上手</h2>
-  <div class="qs-grid">
-    <div class="qs-card">
-      <h3>1. 配置 API Key</h3>
-      <p>编辑 <code>claude-code-java-start/src/main/resources/claude.properties</code>，填入 API Key：</p>
-      <pre><code>OPENAI_API_KEY=sk-xxxxxxxx
-OPENAI_BASE_URL=https://api.openai.com
-OPENAI_MODEL_ID=gpt-4o</code></pre>
-      <p>或通过环境变量覆盖（优先级最高）：</p>
-      <pre><code>export OPENAI_API_KEY=sk-xxxxxxxx</code></pre>
-    </div>
-    <div class="qs-card">
-      <h3>2a. CLI 交互模式</h3>
-      <p>进入 REPL 交互式终端：</p>
-      <pre><code># 编译
-mvn compile
-
-# 启动 CLI（REPL）
-mvn exec:java \
-  -pl claude-code-java-start \
-  -Dexec.mainClass="ai.claude.code.Application" \
-  -Dspring.profiles.active=cli</code></pre>
-    </div>
-    <div class="qs-card">
-      <h3>2b. REST API 模式</h3>
-      <p>启动 HTTP 服务器（默认端口 8080）：</p>
-      <pre><code># 启动 REST 服务器
-mvn exec:java \
-  -pl claude-code-java-start \
-  -Dexec.mainClass="ai.claude.code.Application"
-
-# 调用 API
-curl -X POST http://localhost:8080/api/chat \
-  -H 'Content-Type: application/json' \
-  -d '{"message": "你好"}'</code></pre>
-    </div>
-    <div class="qs-card">
-      <h3>Slash 命令（CLI 模式）</h3>
-      <pre><code>/help       查看所有命令
-/tasks      Todo + TaskStore 双视图
-/skill      列出可用技能
-/compact    手动压缩上下文
-/team       查看收件箱和任务
-/worktree   管理 Git Worktree
-quit        退出</code></pre>
-    </div>
-    <div class="qs-card">
-      <h3>Agent Teams 示例</h3>
-      <p>Lead 动态创建 Teammate，Teammate 在独立线程中运行真实 LLM 循环：</p>
-      <pre><code># 对 Lead 说（CLI 或 REST 均可）：
-请创建两个 Teammate：
-- reviewer：负责代码审查
-- tester：负责编写单元测试
-
-# Lead 会自动调用：
-spawn_teammate(name="reviewer", role="代码审查")
-spawn_teammate(name="tester",   role="单元测试")
-
-# 查看 Teammate 状态：
-list_teammates()
-# → [{"name":"reviewer","status":"working"},...]
-
-# Teammate 自主认领任务：
-# Lead 创建 task → Teammate task_poll 认领
-# → 完成后 msg_send 回报 lead</code></pre>
+<!-- SECTION: ARCHITECTURE -->
+<section id="architecture">
+  <div class="fade-in">
+    <div class="section-title">系统<span>架构</span></div>
+    <p class="section-sub">5层分层架构 — 点击任意层查看详情。service 模块无框架依赖，可嵌入任何 Java 项目</p>
+    <div class="arch-wrap">
+      <div class="arch-layers" id="arch-layers">
+        <div class="arch-layer layer-start" onclick="showArchDetail(0)">
+          <div class="arch-layer-head">
+            <span class="arch-layer-tag">START</span>
+            <span class="arch-layer-name">Web / CLI 入口层</span>
+          </div>
+          <div class="arch-layer-boxes">
+            <span class="arch-box">ChatController</span><span class="arch-box">StreamController</span>
+            <span class="arch-box">CliRunner</span><span class="arch-box">StreamService</span>
+            <span class="arch-box">AgentBeans</span><span class="arch-box">index.html</span>
+          </div>
+        </div>
+        <div class="arch-layer layer-agent" onclick="showArchDetail(1)">
+          <div class="arch-layer-head">
+            <span class="arch-layer-tag">AGENT</span>
+            <span class="arch-layer-name">Agent 核心层</span>
+          </div>
+          <div class="arch-layer-boxes">
+            <span class="arch-box">AgentLoop</span><span class="arch-box">AgentAssembler</span>
+            <span class="arch-box">TeammateLoop</span><span class="arch-box">SlashRouter</span>
+            <span class="arch-box">AgentEventListener</span>
+          </div>
+        </div>
+        <div class="arch-layer layer-cap" onclick="showArchDetail(2)">
+          <div class="arch-layer-head">
+            <span class="arch-layer-tag">CAPABILITY</span>
+            <span class="arch-layer-name">能力层</span>
+          </div>
+          <div class="arch-layer-boxes">
+            <span class="arch-box">TodoManager</span><span class="arch-box">ContextCompactor</span>
+            <span class="arch-box">BackgroundRunner</span><span class="arch-box">TaskStore</span>
+            <span class="arch-box">WorktreeManager</span><span class="arch-box">SkillLoader</span>
+            <span class="arch-box">MessageBus</span><span class="arch-box">TeammateRunner</span>
+            <span class="arch-box">SessionStore</span><span class="arch-box">TeamProtocol</span>
+          </div>
+        </div>
+        <div class="arch-layer layer-tool" onclick="showArchDetail(3)">
+          <div class="arch-layer-head">
+            <span class="arch-layer-tag">TOOL</span>
+            <span class="arch-layer-name">ToolProvider 层</span>
+          </div>
+          <div class="arch-layer-boxes">
+            <span class="arch-box">FileTools</span><span class="arch-box">TodoTool</span>
+            <span class="arch-box">SkillTool</span><span class="arch-box">CompactTool</span>
+            <span class="arch-box">TaskTools</span><span class="arch-box">BackgroundTools</span>
+            <span class="arch-box">TeamTools</span><span class="arch-box">WorktreeTools</span>
+          </div>
+        </div>
+        <div class="arch-layer layer-core" onclick="showArchDetail(4)">
+          <div class="arch-layer-head">
+            <span class="arch-layer-tag">CORE</span>
+            <span class="arch-layer-name">基础设施层</span>
+          </div>
+          <div class="arch-layer-boxes">
+            <span class="arch-box">OpenAiClient</span><span class="arch-box">AnthropicClient</span>
+            <span class="arch-box">ClientFactory</span><span class="arch-box">BaseTools</span>
+            <span class="arch-box">SecurityUtils</span><span class="arch-box">ShellUtils</span>
+            <span class="arch-box">ToolHandler</span>
+          </div>
+        </div>
+      </div>
+      <div class="arch-detail" id="arch-detail">
+        <div class="arch-detail-name" id="arch-detail-name" style="color:var(--cyan)">点击左侧任意层查看详情</div>
+        <div class="arch-detail-desc" id="arch-detail-desc">每一层都有明确职责，service 模块（CAPABILITY + TOOL + CORE）不依赖 Spring，可独立引用到任何 Java 项目中。</div>
+        <div class="arch-detail-items" id="arch-detail-items"></div>
+      </div>
     </div>
   </div>
 </section>
 
 <hr class="divider" />
 
-<!-- ═══ EXTEND ═══ -->
-<section>
-  <h2>扩展新工具</h2>
-  <div class="extend-steps">
-    <div class="extend-step">
-      <h3>实现 ToolProvider</h3>
-      <p>新建 <code>MyTools.java</code> 实现 <code>ToolProvider</code> 接口，实现 <code>handlers()</code> 和 <code>definitions()</code>。</p>
+<!-- SECTION: AGENT TEAMS -->
+<section id="teams">
+  <div class="fade-in">
+    <div class="section-title">Agent <span>Teams</span> — 多 Agent 协作</div>
+    <p class="section-sub">Lead 动态 spawn Teammate，每个 Teammate 在独立线程中运行完整 LLM 循环，通过 MessageBus 通信，Web Playground 实时可视化</p>
+    <div class="seq-wrap">
+      <div class="seq-header">
+        <span class="seq-title">TeammateRunner · TeammateLoop · SSE 事件 时序</span>
+        <div class="seq-controls">
+          <button class="seq-btn" onclick="teamsReplay()">↺ 重播</button>
+        </div>
+      </div>
+      <canvas id="teams-canvas" height="380"></canvas>
+      <div class="seq-status" id="teams-status">▶ 正在播放...</div>
     </div>
-    <div class="extend-step">
-      <h3>注册到 AgentAssembler</h3>
-      <p>在 <code>AgentAssembler.buildProviders()</code> 中加一行 <code>list.add(new MyTools(...))</code>。</p>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- SECTION: COMPRESSION -->
+<section id="compression">
+  <div class="fade-in">
+    <div class="section-title">Context <span>压缩</span> — 三层管道</div>
+    <p class="section-sub">ContextCompactor 通过三层机制保证 LLM 上下文始终在可用范围内，同时保留完整历史链供 Web Playground 追溯</p>
+    <div class="compress-wrap">
+      <div class="compress-card">
+        <div class="compress-card-title" style="color:var(--cyan)">Layer 1: Micro Compact</div>
+        <div class="compress-card-sub">每轮自动 · 替换旧 tool_result</div>
+        <div class="msg-list" id="compress-l1"></div>
+        <div class="compress-layer layer1-tag" style="margin-top:12px">3轮以前的 tool_result → "[used bash]"</div>
+      </div>
+      <div class="compress-card">
+        <div class="compress-card-title" style="color:var(--amber)">Layer 2: Auto Compact</div>
+        <div class="compress-card-sub">messages ≥ 40 时 · LLM 生成摘要</div>
+        <div class="msg-list" id="compress-l2"></div>
+        <div class="compress-layer layer2-tag" style="margin-top:12px">全量 → 1条摘要 + .transcripts/ 存档</div>
+      </div>
+      <div class="compress-card">
+        <div class="compress-card-title" style="color:var(--purple)">Layer 3: Manual Compact</div>
+        <div class="compress-card-sub">/compact 命令 · 随时触发</div>
+        <div class="msg-list" id="compress-l3"></div>
+        <div class="compress-layer layer3-tag" style="margin-top:12px">_transcript_file 链 → 逐层回溯历史</div>
+      </div>
     </div>
-    <div class="extend-step">
-      <h3>编译验证</h3>
-      <p>运行 <code>mvn compile</code>，然后启动 CLI 或 REST 服务器，Agent 将自动获得新工具能力。</p>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- SECTION: SSE TERMINAL -->
+<section id="sse">
+  <div class="fade-in">
+    <div class="section-title">SSE <span>流式事件</span></div>
+    <p class="section-sub">POST /api/chat/stream 返回 Server-Sent Events 流，14 种事件类型覆盖思考、工具、Teammate、压缩全过程</p>
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div>
+        <span class="terminal-title">curl -N -X POST http://localhost:8080/api/chat/stream ···</span>
+      </div>
+      <div class="terminal-body" id="sse-terminal"></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- SECTION: CAPABILITIES -->
+<section id="capabilities">
+  <div class="fade-in">
+    <div class="section-title">10 项<span>核心能力</span></div>
+    <p class="section-sub">每项能力都是 AgentLoop 的能力扩展，通过 ToolProvider 接口注入，无框架依赖</p>
+    <div class="cap-grid">
+      <div class="cap-card fade-in">
+        <div class="cap-icon">🔄</div>
+        <div class="cap-name">TodoManager</div>
+        <div class="cap-desc">Agent 自追踪任务状态。多步骤任务 pending → in_progress → completed，超过阈值自动注入 system-reminder 提醒。</div>
+        <div class="cap-tags"><span class="cap-tag">todo</span><span class="cap-tag">nag-reminder</span><span class="cap-tag">自追踪</span></div>
+      </div>
+      <div class="cap-card fade-in">
+        <div class="cap-icon">🧠</div>
+        <div class="cap-name">ContextCompactor</div>
+        <div class="cap-desc">三层压缩管道：Micro（每轮替换旧 tool_result）→ Auto（messages ≥ 40 LLM 摘要）→ Manual（/compact）。压缩历史通过 _transcript_file 链式追溯。</div>
+        <div class="cap-tags"><span class="cap-tag">micro-compact</span><span class="cap-tag">auto-compact</span><span class="cap-tag">transcript-chain</span></div>
+      </div>
+      <div class="cap-card fade-in">
+        <div class="cap-icon">⚡</div>
+        <div class="cap-name">BackgroundRunner</div>
+        <div class="cap-desc">线程池异步执行耗时任务，fire-and-forget。任务完成后自动注入 system-reminder 通知主循环，不阻塞对话。</div>
+        <div class="cap-tags"><span class="cap-tag">bg_submit</span><span class="cap-tag">bg_status</span><span class="cap-tag">bg_drain</span></div>
+      </div>
+      <div class="cap-card fade-in">
+        <div class="cap-icon">💾</div>
+        <div class="cap-name">TaskStore</div>
+        <div class="cap-desc">JSON 文件持久化任务 + 有向无环依赖图。依赖解锁自动广播，重启后状态恢复。Teammate 通过 task_poll 自主认领。</div>
+        <div class="cap-tags"><span class="cap-tag">task_create</span><span class="cap-tag">task_update</span><span class="cap-tag">dependency-graph</span></div>
+      </div>
+      <div class="cap-card fade-in">
+        <div class="cap-icon">🌿</div>
+        <div class="cap-name">WorktreeManager</div>
+        <div class="cap-desc">Git Worktree 目录级隔离，每个特性分支独立工作区。wt_run 在隔离目录执行命令，主目录不受影响。</div>
+        <div class="cap-tags"><span class="cap-tag">wt_create</span><span class="cap-tag">wt_run</span><span class="cap-tag">git-isolation</span></div>
+      </div>
+      <div class="cap-card fade-in">
+        <div class="cap-icon">🎯</div>
+        <div class="cap-name">SkillLoader</div>
+        <div class="cap-desc">按需加载技能提示词。扫描 skills/ 目录，模型主动调用 load_skill 时注入 prompt，不预占上下文 token。</div>
+        <div class="cap-tags"><span class="cap-tag">load_skill</span><span class="cap-tag">按需注入</span><span class="cap-tag">zero-context-cost</span></div>
+      </div>
+      <div class="cap-card fade-in">
+        <div class="cap-icon">📨</div>
+        <div class="cap-name">MessageBus</div>
+        <div class="cap-desc">JSONL 文件收件箱/发件箱，支持多 Agent 间异步通信。Lead 和 Teammate 通过 msg_send/msg_read 传递消息。</div>
+        <div class="cap-tags"><span class="cap-tag">msg_send</span><span class="cap-tag">msg_read</span><span class="cap-tag">multi-agent</span></div>
+      </div>
+      <div class="cap-card fade-in">
+        <div class="cap-icon">🗂️</div>
+        <div class="cap-name">SessionStore</div>
+        <div class="cap-desc">REST 会话持久化（.sessions/{id}.json）。Lead/Teammate 子会话分开存储，进程重启后完整恢复，Web Playground 可加载历史。</div>
+        <div class="cap-tags"><span class="cap-tag">lead-session</span><span class="cap-tag">-tm-子会话</span><span class="cap-tag">持久化</span></div>
+      </div>
+      <div class="cap-card fade-in">
+        <div class="cap-icon">🔒</div>
+        <div class="cap-name">SecurityUtils</div>
+        <div class="cap-desc">危险命令黑名单（rm -rf /、sudo、shutdown 等）+ 路径穿越防护。所有 bash 执行和文件操作均受保护。</div>
+        <div class="cap-tags"><span class="cap-tag">黑名单</span><span class="cap-tag">路径穿越防护</span><span class="cap-tag">超时截断</span></div>
+      </div>
+      <div class="cap-card fade-in">
+        <div class="cap-icon">🤝</div>
+        <div class="cap-name">TeammateRunner</div>
+        <div class="cap-desc">Agent Teams 核心。Lead spawn Teammate 后，每个 Teammate 在独立线程运行完整 LLM 循环，每次工具调用后实时持久化 session，Web Playground 可实时查看。</div>
+        <div class="cap-tags"><span class="cap-tag">spawn_teammate</span><span class="cap-tag">独立LLM循环</span><span class="cap-tag">实时持久化</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- SECTION: WEB PLAYGROUND -->
+<section id="playground">
+  <div class="fade-in">
+    <div class="section-title">Web <span>Playground</span></div>
+    <p class="section-sub">内置单页应用，无需额外配置，启动服务后访问 <code style="color:var(--cyan);font-family:var(--mono)">http://localhost:8080</code></p>
+    <div class="playground-grid">
+      <div class="pg-card"><div class="pg-icon">⚡</div><div class="pg-name">SSE 实时流式渲染</div><div class="pg-desc">思考、工具调用、文字回复逐 token 实时展示，体验与 Claude.ai 一致</div></div>
+      <div class="pg-card"><div class="pg-icon">🃏</div><div class="pg-name">卡片式信息呈现</div><div class="pg-desc">思考卡/工具卡执行中展开、完成自动折叠，信息密度合理</div></div>
+      <div class="pg-card"><div class="pg-icon">🗜️</div><div class="pg-name">压缩历史追溯</div><div class="pg-desc">多层压缩形成链式 Tab，可逐层回看每次压缩前的完整对话</div></div>
+      <div class="pg-card"><div class="pg-icon">👥</div><div class="pg-name">Teammate 实时可视化</div><div class="pg-desc">悬浮状态条 + 工作空间抽屉，实时展示每个 Teammate 的工具执行详情</div></div>
+      <div class="pg-card"><div class="pg-icon">📋</div><div class="pg-name">会话历史侧边栏</div><div class="pg-desc">历史会话持久化，点击恢复完整对话流，含 Teammate 数量徽标</div></div>
+      <div class="pg-card"><div class="pg-icon">✨</div><div class="pg-name">Markdown 完整渲染</div><div class="pg-desc">AI 回复、压缩摘要均支持标题/列表/代码块/表格，Linear 设计风格</div></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- SECTION: QUICKSTART -->
+<section id="quickstart">
+  <div class="fade-in">
+    <div class="section-title"><span>快速</span>上手</div>
+    <p class="section-sub">三步启动，选择最适合你的交互方式</p>
+
+    <p style="margin-bottom:12px;color:var(--t2);font-size:14px">第一步：配置 API Key</p>
+    <pre><span class="c-comment"># 编辑 claude-code-java-start/src/main/resources/claude.properties</span>
+OPENAI_API_KEY=<span class="c-str">sk-xxxxxxxxxxxxxxxx</span>
+OPENAI_BASE_URL=<span class="c-str">https://api.openai.com</span>
+OPENAI_MODEL_ID=<span class="c-str">gpt-4o</span>
+<span class="c-comment"># 或通过环境变量覆盖（优先级最高）</span>
+<span class="c-cmd">export</span> OPENAI_API_KEY=<span class="c-str">sk-xxxxxxxxxxxxxxxx</span></pre>
+
+    <p style="margin-bottom:12px;color:var(--t2);font-size:14px">第二步：编译</p>
+    <pre><span class="c-cmd">mvn compile</span></pre>
+
+    <p style="margin-bottom:12px;color:var(--t2);font-size:14px">第三步：选择启动方式</p>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(0)">🌐 Web Playground（推荐）</div>
+      <div class="tab" onclick="switchTab(1)">💻 CLI REPL</div>
+      <div class="tab" onclick="switchTab(2)">🔌 REST API</div>
+    </div>
+    <div class="tab-panel active" id="tab0">
+      <pre><span class="c-comment"># 启动 Web Playground + REST API</span>
+<span class="c-cmd">mvn exec:java</span> <span class="c-flag">-pl</span> claude-code-java-start \
+  <span class="c-flag">-Dexec.mainClass=</span><span class="c-str">"ai.claude.code.Application"</span>
+
+<span class="c-comment"># 访问 http://localhost:8080</span></pre>
+    </div>
+    <div class="tab-panel" id="tab1">
+      <pre><span class="c-cmd">mvn exec:java</span> <span class="c-flag">-pl</span> claude-code-java-start \
+  <span class="c-flag">-Dexec.mainClass=</span><span class="c-str">"ai.claude.code.Application"</span> \
+  <span class="c-flag">-Dspring.profiles.active=</span><span class="c-str">cli</span>
+
+<span class="c-comment"># Slash 命令：</span>
+<span class="c-str">/help</span>       <span class="c-comment"># 显示所有命令</span>
+<span class="c-str">/tasks</span>      <span class="c-comment"># Todo + TaskStore 双视图</span>
+<span class="c-str">/compact</span>    <span class="c-comment"># 手动压缩上下文</span>
+<span class="c-str">/team</span>       <span class="c-comment"># 查看 Agent Teams 状态</span>
+<span class="c-str">/worktree</span>   <span class="c-comment"># 管理 Git Worktree</span></pre>
+    </div>
+    <div class="tab-panel" id="tab2">
+      <pre><span class="c-comment"># 同步接口</span>
+<span class="c-cmd">curl</span> -X POST http://localhost:8080/api/chat \
+  -H <span class="c-str">'Content-Type: application/json'</span> \
+  -d <span class="c-str">'{"message": "帮我创建一个 Hello.java"}'</span>
+
+<span class="c-comment"># SSE 流式接口</span>
+<span class="c-cmd">curl</span> -N -X POST http://localhost:8080/api/chat/stream \
+  -H <span class="c-str">'Content-Type: application/json'</span> \
+  -d <span class="c-str">'{"message": "用快排实现 TopK"}'</span></pre>
     </div>
   </div>
 </section>
@@ -328,8 +630,391 @@ list_teammates()
 <footer>
   claude-code-java &nbsp;·&nbsp; MIT License &nbsp;·&nbsp;
   <a href="https://github.com/fluentlc/claude-code-java">GitHub</a> &nbsp;·&nbsp;
-  <a href="api.html">REST API 文档</a>
+  <a href="api.html">REST & SSE API 文档</a>
 </footer>
 
+<script>
+/* ── HERO CANVAS ── */
+(function(){
+  const canvas = document.getElementById('hero-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, nodes = [], raf;
+  function resize(){ W = canvas.width = canvas.offsetWidth; H = canvas.height = canvas.offsetHeight; }
+  function init(){
+    nodes = [];
+    const n = Math.floor(W * H / 18000);
+    for(let i=0;i<n;i++) nodes.push({
+      x: Math.random()*W, y: Math.random()*H,
+      vx:(Math.random()-.5)*0.3, vy:(Math.random()-.5)*0.3,
+      r: Math.random()*1.5+0.5
+    });
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='rgba(5,13,26,0.02)';
+    ctx.fillRect(0,0,W,H);
+    for(let i=0;i<nodes.length;i++){
+      const a=nodes[i];
+      a.x+=a.vx; a.y+=a.vy;
+      if(a.x<0||a.x>W) a.vx*=-1;
+      if(a.y<0||a.y>H) a.vy*=-1;
+      for(let j=i+1;j<nodes.length;j++){
+        const b=nodes[j];
+        const d=Math.hypot(a.x-b.x,a.y-b.y);
+        if(d<120){
+          ctx.beginPath();
+          ctx.strokeStyle=`rgba(0,212,255,${0.12*(1-d/120)})`;
+          ctx.lineWidth=0.5;
+          ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+          ctx.stroke();
+        }
+      }
+      ctx.beginPath();
+      ctx.arc(a.x,a.y,a.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(0,212,255,0.6)';
+      ctx.fill();
+    }
+    raf = requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',()=>{ resize(); init(); });
+  resize(); init(); draw();
+})();
+
+/* ── CORE LOOP ANIMATION ── */
+(function(){
+  const lines = [0,1,2,3,4,5,6,7,8,9];
+  const stepMap = [[0],[1,2,3],[4],[5,6],[7],[8,9]];
+  const stepIds = ['ls0','ls1','ls2','ls3','ls1','ls2'];
+  let si=0;
+  function tick(){
+    lines.forEach(i=>{
+      const el=document.getElementById('cl'+i);
+      if(el) el.classList.remove('active');
+    });
+    document.querySelectorAll('.loop-step').forEach(el=>el.classList.remove('active'));
+    const group=stepMap[si%stepMap.length];
+    group.forEach(i=>{ const el=document.getElementById('cl'+i); if(el) el.classList.add('active'); });
+    const sid=stepIds[si%stepIds.length];
+    const sel=document.getElementById(sid);
+    if(sel) sel.classList.add('active');
+    si++;
+  }
+  tick(); setInterval(tick, 1600);
+})();
+
+/* ── SEQUENCE DIAGRAM ── */
+const SEQ_ACTORS = ['用户/浏览器','AgentLoop','LLM API','工具/文件系统'];
+const SEQ_STEPS = [
+  {from:0,to:1,label:'POST /chat/stream',color:'#00d4ff'},
+  {from:1,to:2,label:'messages + tool defs',color:'#9d71ff'},
+  {from:2,to:1,label:'SSE: thinking tokens',color:'#9d71ff',dashed:true},
+  {from:1,to:0,label:'SSE: thinking_start/text',color:'#00d4ff',dashed:true},
+  {from:2,to:1,label:'stop_reason="tool_calls"',color:'#ffb347'},
+  {from:1,to:0,label:'SSE: tool_start',color:'#00d4ff',dashed:true},
+  {from:1,to:3,label:'execute(bash/read/write)',color:'#4afa7a'},
+  {from:3,to:1,label:'result',color:'#4afa7a'},
+  {from:1,to:0,label:'SSE: tool_end',color:'#00d4ff',dashed:true},
+  {from:1,to:2,label:'messages + tool result ↺',color:'#ffb347'},
+  {from:2,to:1,label:'stop_reason="end_turn"',color:'#9d71ff'},
+  {from:1,to:0,label:'SSE: text_delta … done',color:'#00d4ff',dashed:true},
+];
+
+let seqStep=0, seqTimer=null, seqPaused=false;
+const seqCanvas=document.getElementById('seq-canvas');
+const seqCtx=seqCanvas.getContext('2d');
+
+function seqDraw(highlight){
+  const W=seqCanvas.width, H=seqCanvas.height;
+  const n=SEQ_ACTORS.length;
+  const colW=W/n;
+  const topY=56, bottomY=H-16;
+  seqCtx.clearRect(0,0,W,H);
+  seqCtx.fillStyle='#0a1628'; seqCtx.fillRect(0,0,W,H);
+
+  // Lifelines
+  SEQ_ACTORS.forEach((name,i)=>{
+    const x=colW*i+colW/2;
+    seqCtx.beginPath(); seqCtx.setLineDash([4,6]);
+    seqCtx.strokeStyle='rgba(0,212,255,0.2)'; seqCtx.lineWidth=1;
+    seqCtx.moveTo(x,topY+28); seqCtx.lineTo(x,bottomY);
+    seqCtx.stroke(); seqCtx.setLineDash([]);
+    // Actor box
+    const bw=Math.min(colW-16,140), bh=30;
+    const bx=x-bw/2, by=topY-bh/2;
+    seqCtx.fillStyle='#0f1e38';
+    seqCtx.strokeStyle='rgba(0,212,255,0.35)'; seqCtx.lineWidth=1;
+    roundRect(seqCtx,bx,by,bw,bh,6);
+    seqCtx.fill(); seqCtx.stroke();
+    seqCtx.fillStyle='#e2e8f0'; seqCtx.font='bold 12px JetBrains Mono,monospace';
+    seqCtx.textAlign='center'; seqCtx.textBaseline='middle';
+    seqCtx.fillText(name,x,topY);
+  });
+
+  // Steps
+  const stepH=(bottomY-topY-28)/(SEQ_STEPS.length);
+  SEQ_STEPS.forEach((step,idx)=>{
+    if(idx>=highlight) return;
+    const y=topY+28+(idx+0.5)*stepH;
+    const x1=colW*step.from+colW/2, x2=colW*step.to+colW/2;
+    const done=idx<highlight-1, current=idx===highlight-1;
+    const alpha=done?0.35:1;
+    seqCtx.globalAlpha=alpha;
+    seqCtx.strokeStyle=step.color; seqCtx.lineWidth=current?2:1.5;
+    if(step.dashed) seqCtx.setLineDash([5,4]); else seqCtx.setLineDash([]);
+    seqCtx.beginPath(); seqCtx.moveTo(x1,y); seqCtx.lineTo(x2,y); seqCtx.stroke();
+    seqCtx.setLineDash([]);
+    // Arrowhead
+    const dir=x2>x1?1:-1;
+    seqCtx.fillStyle=step.color;
+    seqCtx.beginPath(); seqCtx.moveTo(x2,y);
+    seqCtx.lineTo(x2-dir*8,y-5); seqCtx.lineTo(x2-dir*8,y+5);
+    seqCtx.closePath(); seqCtx.fill();
+    // Label
+    if(current){
+      const mx=(x1+x2)/2;
+      seqCtx.font='12px JetBrains Mono,monospace'; seqCtx.textAlign='center';
+      seqCtx.fillStyle='#050d1a';
+      const tw=seqCtx.measureText(step.label).width+12;
+      seqCtx.fillRect(mx-tw/2,y-20,tw,16);
+      seqCtx.fillStyle=step.color; seqCtx.fillText(step.label,mx,y-12);
+    } else {
+      const mx=(x1+x2)/2;
+      seqCtx.font='11px JetBrains Mono,monospace'; seqCtx.textAlign='center';
+      seqCtx.fillStyle=step.color; seqCtx.fillText(step.label,mx,y-10);
+    }
+    seqCtx.globalAlpha=1;
+  });
+}
+function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+r);ctx.lineTo(x,y);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
+
+function seqResize(){ seqCanvas.width=seqCanvas.offsetWidth||800; seqCanvas.height=480; seqDraw(seqStep); }
+function seqTick(){
+  if(seqPaused) return;
+  seqStep++;
+  seqDraw(seqStep);
+  document.getElementById('seq-status').textContent=seqStep<=SEQ_STEPS.length
+    ? `▶ 步骤 ${seqStep}/${SEQ_STEPS.length}: ${SEQ_STEPS[seqStep-1]?.label||''}`
+    : '✓ 完成 — 3 秒后重播...';
+  if(seqStep<=SEQ_STEPS.length) seqTimer=setTimeout(seqTick,1400);
+  else seqTimer=setTimeout(seqReplay,3000);
+}
+function seqReplay(){ seqStep=0; seqDraw(0); document.getElementById('seq-status').textContent='▶ 正在播放...'; clearTimeout(seqTimer); seqTimer=setTimeout(seqTick,800); }
+function seqToggle(){ seqPaused=!seqPaused; document.getElementById('seq-pause-btn').textContent=seqPaused?'▶ 继续':'⏸ 暂停'; if(!seqPaused) seqTick(); }
+window.addEventListener('resize',seqResize);
+setTimeout(()=>{ seqResize(); seqReplay(); },300);
+
+/* ── TEAMS DIAGRAM ── */
+const TEAMS_ACTORS=['Lead AgentLoop','TeammateRunner','Teammate Loop','浏览器/SSE'];
+const TEAMS_STEPS=[
+  {from:0,to:1,label:'spawn_teammate("reviewer")',color:'#ffb347'},
+  {from:1,to:2,label:'new Thread(TeammateLoop)',color:'#4afa7a'},
+  {from:2,to:2,label:'LLM 循环开始',color:'#9d71ff',self:true},
+  {from:2,to:2,label:'execute read_file',color:'#4afa7a',self:true},
+  {from:2,to:1,label:'notifyTeamToolStart',color:'#ffb347'},
+  {from:1,to:3,label:'SSE: team_tool_start',color:'#00d4ff',dashed:true},
+  {from:2,to:2,label:'saveSession() 实时持久化',color:'#4afa7a',self:true},
+  {from:2,to:0,label:'msg_send("任务完成")',color:'#9d71ff'},
+  {from:1,to:3,label:'SSE: team_done',color:'#00d4ff',dashed:true},
+];
+
+const teamsCanvas=document.getElementById('teams-canvas');
+const teamsCtx=teamsCanvas.getContext('2d');
+let teamsStep=0, teamsTimer=null;
+
+function teamsDraw(highlight){
+  const W=teamsCanvas.width, H=teamsCanvas.height;
+  const n=TEAMS_ACTORS.length;
+  const colW=W/n;
+  const topY=50, bottomY=H-16;
+  teamsCtx.clearRect(0,0,W,H);
+  teamsCtx.fillStyle='#0a1628'; teamsCtx.fillRect(0,0,W,H);
+  TEAMS_ACTORS.forEach((name,i)=>{
+    const x=colW*i+colW/2;
+    teamsCtx.beginPath(); teamsCtx.setLineDash([4,6]);
+    teamsCtx.strokeStyle='rgba(157,113,255,0.2)'; teamsCtx.lineWidth=1;
+    teamsCtx.moveTo(x,topY+26); teamsCtx.lineTo(x,bottomY);
+    teamsCtx.stroke(); teamsCtx.setLineDash([]);
+    const bw=Math.min(colW-16,130), bh=28;
+    teamsCtx.fillStyle='#0f1e38'; teamsCtx.strokeStyle='rgba(157,113,255,0.4)'; teamsCtx.lineWidth=1;
+    roundRect(teamsCtx,x-bw/2,topY-bh/2,bw,bh,5);
+    teamsCtx.fill(); teamsCtx.stroke();
+    teamsCtx.fillStyle='#e2e8f0'; teamsCtx.font='bold 11px JetBrains Mono,monospace';
+    teamsCtx.textAlign='center'; teamsCtx.textBaseline='middle';
+    teamsCtx.fillText(name,x,topY);
+  });
+  const stepH=(bottomY-topY-26)/(TEAMS_STEPS.length);
+  TEAMS_STEPS.forEach((step,idx)=>{
+    if(idx>=highlight) return;
+    const y=topY+26+(idx+0.5)*stepH;
+    const current=idx===highlight-1;
+    const alpha=idx<highlight-1?0.35:1;
+    teamsCtx.globalAlpha=alpha;
+    if(step.self){
+      const x=colW*step.from+colW/2;
+      teamsCtx.strokeStyle=step.color; teamsCtx.lineWidth=current?2:1.5;
+      teamsCtx.setLineDash([]); teamsCtx.beginPath();
+      teamsCtx.arc(x+30,y,18,Math.PI*1.3,Math.PI*2.7);
+      teamsCtx.stroke();
+      teamsCtx.fillStyle=step.color; teamsCtx.font='11px JetBrains Mono,monospace';
+      teamsCtx.textAlign='center'; teamsCtx.fillText(step.label,x,y-24);
+    } else {
+      const x1=colW*step.from+colW/2, x2=colW*step.to+colW/2;
+      teamsCtx.strokeStyle=step.color; teamsCtx.lineWidth=current?2:1.5;
+      if(step.dashed) teamsCtx.setLineDash([5,4]); else teamsCtx.setLineDash([]);
+      teamsCtx.beginPath(); teamsCtx.moveTo(x1,y); teamsCtx.lineTo(x2,y); teamsCtx.stroke();
+      teamsCtx.setLineDash([]);
+      const dir=x2>x1?1:-1;
+      teamsCtx.fillStyle=step.color; teamsCtx.beginPath();
+      teamsCtx.moveTo(x2,y); teamsCtx.lineTo(x2-dir*8,y-5); teamsCtx.lineTo(x2-dir*8,y+5);
+      teamsCtx.closePath(); teamsCtx.fill();
+      const mx=(x1+x2)/2;
+      teamsCtx.font='11px JetBrains Mono,monospace'; teamsCtx.textAlign='center';
+      teamsCtx.fillStyle=step.color; teamsCtx.fillText(step.label,mx,y-9);
+    }
+    teamsCtx.globalAlpha=1;
+  });
+}
+function teamsResize(){ teamsCanvas.width=teamsCanvas.offsetWidth||800; teamsCanvas.height=380; teamsDraw(teamsStep); }
+function teamsTick(){
+  teamsStep++;
+  teamsDraw(teamsStep);
+  document.getElementById('teams-status').textContent=teamsStep<=TEAMS_STEPS.length
+    ? `▶ 步骤 ${teamsStep}/${TEAMS_STEPS.length}: ${TEAMS_STEPS[teamsStep-1]?.label||''}`
+    : '✓ 完成 — 3 秒后重播...';
+  if(teamsStep<=TEAMS_STEPS.length) teamsTimer=setTimeout(teamsTick,1400);
+  else teamsTimer=setTimeout(teamsReplay,3000);
+}
+function teamsReplay(){ teamsStep=0; teamsDraw(0); clearTimeout(teamsTimer); teamsTimer=setTimeout(teamsTick,800); }
+window.addEventListener('resize',teamsResize);
+setTimeout(()=>{ teamsResize(); teamsReplay(); },400);
+
+/* ── ARCHITECTURE DETAIL ── */
+const archData=[
+  {name:'Web / CLI 入口层',color:'#ffb347',desc:'Spring Boot 3.2 应用层（claude-code-java-start 模块）。ChatController 提供同步 REST，StreamController 提供 SSE 流式接口，CliRunner 提供 CLI REPL，StreamService 实现 AgentEventListener 将事件推送为 SSE 帧。',items:[{label:'ChatController',desc:'POST /api/chat（同步）+ GET /api/sessions/* 会话接口'},{label:'StreamController',desc:'POST /api/chat/stream — SSE 流式对话'},{label:'StreamService',desc:'实现 AgentEventListener，序列化 SSE 事件推给浏览器'},{label:'index.html',desc:'Web Playground 单页应用，无构建步骤'}]},
+  {name:'Agent 核心层',color:'#00d4ff',desc:'AgentLoop 是所有 Agent 能力的核心 while 循环。AgentEventListener 接口解耦事件输出模式（CLI/SSE/Test）。TeammateLoop 是每个 Teammate 的独立 LLM 循环（Runnable）。',items:[{label:'AgentLoop',desc:'while(tool_calls) 核心循环，构造器注入所有依赖'},{label:'AgentEventListener',desc:'事件总线接口：thinking/tool/compact/team 全覆盖'},{label:'TeammateLoop',desc:'独立 Runnable，8 个工具，空闲轮询 60s，实时 saveSession'},{label:'AgentAssembler',desc:'工厂方法，初始化所有 capability，组装 AgentLoop'}]},
+  {name:'Capability 层',color:'#4afa7a',desc:'service 模块核心能力组，无 Spring 依赖，可被任何 Java 项目引用。每个 capability 通过构造器注入 AgentLoop，ToolProvider 提供工具定义。',items:[{label:'ContextCompactor',desc:'三层压缩 + _transcript_file 链式追溯'},{label:'TeammateRunner',desc:'线程池管理 + mainListener 转发 + setLeadSessionId'},{label:'SessionStore',desc:'Lead/Teammate 会话分开存储，listAll 过滤 -tm-'},{label:'TaskStore',desc:'DAG 依赖图 + 自动解锁 + task_poll 认领'}]},
+  {name:'ToolProvider 层',color:'#9d71ff',desc:'每个工具类实现 ToolProvider 接口（handlers + definitions）。新增工具只需：1. 新建类；2. AgentAssembler.buildProviders() 加一行。共 8 个 Provider，覆盖文件/任务/后台/团队/Git 全场景。',items:[{label:'FileTools',desc:'bash · read_file · write_file · edit_file'},{label:'TeamTools',desc:'spawn_teammate · list_teammates · msg_send · msg_read'},{label:'TaskTools',desc:'task_create · task_list · task_get · task_update · task_poll'},{label:'WorktreeTools',desc:'wt_create · wt_run · wt_status · wt_list'}]},
+  {name:'Core 基础设施层',color:'#ff6b9d',desc:'最底层基础设施，包含 LLM 客户端（OpenAI 协议 + Anthropic 协议）、安全工具、Shell 执行工具。ClienFactory 根据 CLIENT_TYPE 配置自动选择客户端。',items:[{label:'OpenAiClient',desc:'OpenAI Chat Completions 协议，支持 streaming'},{label:'SecurityUtils',desc:'危险命令黑名单 + 路径穿越防护'},{label:'ShellUtils',desc:'超时控制 + 输出截断 + 安全执行'},{label:'ClientFactory',desc:'根据 CLIENT_TYPE 自动选择 OpenAI / Anthropic'}]},
+];
+function showArchDetail(idx){
+  document.querySelectorAll('.arch-layer').forEach((el,i)=>el.classList.toggle('active',i===idx));
+  const d=archData[idx];
+  document.getElementById('arch-detail-name').style.color=d.color;
+  document.getElementById('arch-detail-name').textContent=d.name;
+  document.getElementById('arch-detail-desc').textContent=d.desc;
+  const itemsEl=document.getElementById('arch-detail-items');
+  itemsEl.innerHTML=d.items.map(it=>`<div class="arch-detail-item" style="border-color:${d.color}40"><strong style="color:${d.color};font-family:var(--mono);font-size:12px">${it.label}</strong><br><span style="font-size:12px">${it.desc}</span></div>`).join('');
+}
+
+/* ── COMPRESSION ANIMATION ── */
+(function(){
+  const msgs=[
+    {type:'msg-user',label:'user: 帮我分析项目结构'},
+    {type:'msg-ai',label:'ai: 我来分析...'},
+    {type:'msg-tool',label:'tool: read_file → [结果]'},
+    {type:'msg-user',label:'user: 继续分析依赖'},
+    {type:'msg-ai',label:'ai: 好的，查看 pom.xml'},
+    {type:'msg-tool',label:'tool: read_file → [结果]'},
+    {type:'msg-user',label:'user: 有安全问题吗？'},
+    {type:'msg-ai',label:'ai: 检查 SecurityUtils...'},
+  ];
+  function initLayer(id, animFn){
+    const el=document.getElementById(id);
+    el.innerHTML='';
+    msgs.forEach(m=>{
+      const d=document.createElement('div');
+      d.className='msg-bar '+m.type; d.textContent=m.label;
+      el.appendChild(d);
+    });
+    setTimeout(animFn,800);
+  }
+  // L1: compress old tool_results
+  function animL1(){
+    const bars=document.querySelectorAll('#compress-l1 .msg-tool');
+    bars.forEach((b,i)=>{ if(i<bars.length-1){ setTimeout(()=>{ b.classList.add('compressed'); b.textContent='[prev tool]'; },300+i*200); } });
+    setTimeout(animL1,4000);
+  }
+  // L2: full collapse
+  function animL2(){
+    const el=document.getElementById('compress-l2');
+    const bars=el.querySelectorAll('.msg-bar');
+    bars.forEach((b,i)=>{ setTimeout(()=>b.classList.add('compressed'),200+i*60); });
+    setTimeout(()=>{
+      el.innerHTML='';
+      const s=document.createElement('div');
+      s.className='msg-bar msg-compact'; s.textContent='[Context Compressed] 已生成摘要 → transcript_xxx.json';
+      s.style.height='28px'; el.appendChild(s);
+      setTimeout(()=>{initLayer('compress-l2',animL2);},3000);
+    },2000);
+  }
+  // L3: manual compact
+  function animL3(){
+    const el=document.getElementById('compress-l3');
+    const bars=el.querySelectorAll('.msg-bar');
+    // flash border
+    el.closest('.compress-card').style.borderColor='rgba(157,113,255,0.6)';
+    setTimeout(()=>{
+      bars.forEach((b,i)=>setTimeout(()=>b.classList.add('compressed'),100+i*50));
+      setTimeout(()=>{
+        el.innerHTML='';
+        const s=document.createElement('div');
+        s.className='msg-bar msg-compact';
+        s.style.background='rgba(157,113,255,0.1)'; s.style.borderColor='rgba(157,113,255,0.3)'; s.style.color='#9d71ff';
+        s.textContent='/compact → 压缩完成 · _transcript_file 链已建立';
+        el.appendChild(s);
+        el.closest('.compress-card').style.borderColor='';
+        setTimeout(()=>{initLayer('compress-l3',animL3);},3500);
+      },1500);
+    },500);
+  }
+  initLayer('compress-l1',animL1);
+  initLayer('compress-l2',()=>setTimeout(animL2,1500));
+  initLayer('compress-l3',()=>setTimeout(animL3,2500));
+})();
+
+/* ── SSE TERMINAL ── */
+(function(){
+  const events=[
+    {event:'session_id',data:'{"sessionId":"20260416-abc123"}',cls:''},
+    {event:'thinking_start',data:'{}',cls:'think'},
+    {event:'thinking_text',data:'{"text":"我需要分析这个项目的结构..."}',cls:'think'},
+    {event:'thinking_end',data:'{"ms":2341}',cls:'think'},
+    {event:'tool_start',data:'{"toolName":"bash","toolCallId":"tc-001","input":"ls -la src/"}',cls:'tool'},
+    {event:'tool_end',data:'{"toolCallId":"tc-001","output":"total 8\\ndrwxr-xr-x ..."}',cls:'tool'},
+    {event:'team_tool_start',data:'{"agentId":"reviewer","toolName":"read_file"}',cls:'team'},
+    {event:'team_tool_end',data:'{"agentId":"reviewer","toolName":"read_file"}',cls:'team'},
+    {event:'team_done',data:'{"agentId":"reviewer"}',cls:'team'},
+    {event:'text_delta',data:'{"text":"分析完成，项目包含 5 个模块..."}',cls:''},
+    {event:'compact_done',data:'{"summary":"用户请求分析...","transcriptFile":"transcript_001.json"}',cls:'think'},
+    {event:'done',data:'{}',cls:'done'},
+  ];
+  const term=document.getElementById('sse-terminal');
+  let idx=0;
+  function addLine(){
+    if(idx>=events.length){ setTimeout(()=>{ term.innerHTML=''; idx=0; setTimeout(addLine,500); },2000); return; }
+    const e=events[idx++];
+    const line=document.createElement('div');
+    line.className='sse-line';
+    line.style.animationDelay='0s';
+    line.innerHTML=`<span class="sse-event ${e.cls}">event: ${e.event.padEnd(16)}</span><span class="sse-data">data: ${e.data}</span>`;
+    term.appendChild(line);
+    term.scrollTop=term.scrollHeight;
+    setTimeout(addLine, 600+Math.random()*400);
+  }
+  setTimeout(addLine,1200);
+})();
+
+/* ── TABS ── */
+function switchTab(i){
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',j===i));
+  document.querySelectorAll('.tab-panel').forEach((p,j)=>p.classList.toggle('active',j===i));
+}
+
+/* ── INTERSECTION OBSERVER ── */
+const io=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible'); });
+},{threshold:0.1});
+document.querySelectorAll('.fade-in').forEach(el=>io.observe(el));
+</script>
 </body>
 </html>

@@ -5,6 +5,38 @@ Each version corresponds to one conversation iteration.
 
 ---
 
+## v0.17 — 2026-04-16
+
+### 需求
+> study 中的几个 html 文件整体重构，搞得有点科技感；要把整个项目的全部能力都放进去教学，要有可动的图；包括 claude code 的消息时序图、架构图，以及这个项目的架构图
+
+### 变更
+
+#### `docs/study/index.html`（完整重构）
+- **视觉风格**：全面切换科幻/深蓝风格（bg `#050d1a`，cyan `#00d4ff`，purple `#9d71ff`，green `#4afa7a`）
+- **Hero**：Canvas 粒子网络背景（节点 + 连线，呼吸动画）
+- **AgentLoop 核心循环**：动态代码块，`setInterval` 循环高亮关键行
+- **12 步 Canvas 时序图**：4 个角色（用户/浏览器、AgentLoop、LLM API、工具/文件系统），自动逐步播放（1.4s/步），支持重播/暂停
+- **5 层交互架构图**：点击展开详情面板（START / AGENT / CAPABILITY / TOOL / CORE 各层描述和子组件列表）
+- **Agent Teams 9 步 Canvas 时序图**：含 TeammateLoop 自循环箭头
+- **Context Compression 动效**：3 个面板（Layer 1/2/3）分别以不同节奏闪烁动画
+- **SSE 终端**：打字效果逐条展示 14 种 SSE 事件，颜色按类型区分
+- **10 个能力卡片**：hover 发光 + 上浮效果
+- **Web Playground 特性**：6 张特性卡
+- **快速上手**：Web / CLI / API 三 Tab 切换
+
+#### `docs/study/api.html`（完整重构）
+- **视觉风格**：与 index.html 一致的科幻深蓝设计系统
+- **Hero**：网格背景 + 径向光晕，4 个统计卡（8 端点 / 14 事件 / ∞ 多轮 / 3 压缩层）
+- **SSE 事件流实时演示**：仿终端窗口，15 个事件依次播放（含思考/工具/Teammate/压缩/done），支持重播/暂停
+- **14 种 SSE 事件类型完整表**：分组（会话标识/思考/文字/工具/Teammate/压缩/完成），含 Payload 字段说明
+- **端点卡片可折叠**：POST /api/chat、DELETE /api/sessions/{id}、POST /api/chat/stream、GET /api/sessions、GET /api/sessions/{id}/messages、GET /api/sessions/{id}/teammates、GET /api/transcripts/{filename}
+- **会话生命周期图**：5 节点横向流程（首次请求→继续对话→压缩→Agent Teams→清除），含文件路径注释
+- **配置参考表**：5 个配置项含默认值、必填标注、`claude.properties` 示例和命令行覆盖示例
+- **JS 客户端接收示例**：fetch + ReadableStream 手动解析 event:/data: 行的完整代码
+
+---
+
 ## v0.16 — 2026-04-16
 
 ### 需求

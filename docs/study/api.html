@@ -5,225 +5,911 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>REST API 文档 — claude-code-java</title>
 <style>
-  :root {
-    --bg:        #0d1117;
-    --surface:   #161b22;
-    --border:    #30363d;
-    --amber:     #f0a500;
-    --amber-dim: #7a5200;
-    --cyan:      #22d3ee;
-    --cyan-dim:  #0c4a56;
-    --text:      #c9d1d9;
-    --text-dim:  #8b949e;
-    --green:     #3fb950;
-    --red:       #f85149;
-    --purple:    #bc8cff;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.6; }
+:root {
+  --bg:       #050d1a;
+  --bg2:      #071224;
+  --bg3:      #0a1929;
+  --panel:    #0d2035;
+  --border:   rgba(0,212,255,0.15);
+  --border2:  rgba(0,212,255,0.08);
+  --cyan:     #00d4ff;
+  --cyan2:    #00a8cc;
+  --purple:   #9d71ff;
+  --green:    #4afa7a;
+  --amber:    #ffb340;
+  --red:      #ff4d6a;
+  --text:     #c8d8e8;
+  --text-dim: #6a8099;
+  --text-bright: #e8f4ff;
+  --glow-c:   0 0 20px rgba(0,212,255,0.3);
+  --glow-p:   0 0 20px rgba(157,113,255,0.3);
+  --glow-g:   0 0 20px rgba(74,250,122,0.3);
+  --ease:     cubic-bezier(0.4,0,0.2,1);
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior:smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
+  overflow-x: hidden;
+}
 
-  .hero { background: linear-gradient(135deg, #0d1117 0%, #161b22 60%, #0c1a2e 100%); border-bottom: 1px solid var(--border); padding: 60px 24px 48px; text-align: center; }
-  .badge { display: inline-block; background: var(--cyan-dim); color: var(--cyan); font-size: 12px; font-weight: 600; letter-spacing: 1px; padding: 4px 12px; border-radius: 20px; margin-bottom: 18px; text-transform: uppercase; }
-  h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 700; color: #fff; margin-bottom: 12px; }
-  h1 span { color: var(--amber); }
-  .subtitle { font-size: 1rem; color: var(--text-dim); margin-bottom: 24px; }
-  .back { display: inline-block; color: var(--amber); text-decoration: none; font-size: 14px; }
-  .back:hover { text-decoration: underline; }
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.3); border-radius:3px; }
 
-  main { max-width: 900px; margin: 0 auto; padding: 48px 24px 80px; }
-  h2 { font-size: 1.3rem; font-weight: 700; color: var(--amber); margin: 48px 0 20px; display: flex; align-items: center; gap: 10px; }
-  h2::before { content: ''; display: block; width: 4px; height: 20px; background: var(--amber); border-radius: 2px; }
-  h3 { font-size: 1rem; font-weight: 600; color: var(--cyan); margin: 24px 0 10px; }
-  p { color: var(--text-dim); margin-bottom: 12px; font-size: 14px; }
+/* ── TOPBAR ── */
+.topbar {
+  position: fixed; top:0; left:0; right:0; z-index:200;
+  height:52px;
+  background: rgba(5,13,26,0.9);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border2);
+  display: flex; align-items:center; gap:20px; padding:0 32px;
+}
+.topbar-logo {
+  font-size:14px; font-weight:700; letter-spacing:.05em;
+  color: var(--cyan); text-decoration:none;
+  display:flex; align-items:center; gap:8px;
+}
+.topbar-logo svg { width:18px; height:18px; }
+.topbar-badge {
+  font-size:11px; padding:2px 8px; border-radius:10px;
+  background: rgba(0,212,255,0.1); border:1px solid var(--border);
+  color: var(--cyan); letter-spacing:.04em; font-weight:600;
+}
+.topbar-nav { display:flex; gap:20px; margin-left:auto; }
+.topbar-nav a {
+  color: var(--text-dim); text-decoration:none; font-size:13px;
+  transition: color .2s;
+}
+.topbar-nav a:hover { color: var(--cyan); }
+.topbar-nav a.active { color: var(--cyan); }
 
-  /* ─── endpoint card ─── */
-  .endpoint { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 32px; overflow: hidden; }
-  .ep-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
-  .method { font-family: 'Courier New', monospace; font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 4px; min-width: 60px; text-align: center; }
-  .method.post { background: #1a2e1a; color: var(--green); border: 1px solid #1a4d1a; }
-  .method.delete { background: #2e1a1a; color: var(--red); border: 1px solid #4d1a1a; }
-  .ep-path { font-family: 'Courier New', monospace; font-size: 14px; color: #fff; }
-  .ep-desc { color: var(--text-dim); font-size: 13px; margin-left: auto; }
-  .ep-body { padding: 20px; }
-  pre { background: #0d1117; border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; font-size: 13px; overflow-x: auto; color: var(--text); line-height: 1.5; margin-bottom: 16px; }
-  pre code { font-family: 'Courier New', monospace; }
-  .field-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 13px; }
-  .field-table th { text-align: left; color: var(--text-dim); font-weight: 600; padding: 6px 10px; border-bottom: 1px solid var(--border); }
-  .field-table td { padding: 7px 10px; border-bottom: 1px solid #21262d; }
-  .field-table td:first-child { font-family: 'Courier New', monospace; color: var(--cyan); }
-  .optional { color: var(--text-dim); font-size: 11px; margin-left: 4px; }
-  .tag { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 10px; }
-  .tag-opt { background: #1a2530; color: var(--cyan-dim); border: 1px solid var(--cyan-dim); }
-  .tag-req { background: #2e1a00; color: var(--amber); border: 1px solid var(--amber-dim); }
+/* ── HERO ── */
+.hero {
+  padding: 120px 32px 80px;
+  text-align: center;
+  position: relative; overflow: hidden;
+}
+.hero-bg {
+  position:absolute; inset:0; pointer-events:none;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,212,255,.07) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 80% 60%, rgba(157,113,255,.05) 0%, transparent 70%);
+}
+.hero-grid {
+  position:absolute; inset:0; pointer-events:none;
+  background-image:
+    linear-gradient(rgba(0,212,255,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+}
+.hero-tag {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:6px 16px; border-radius:20px;
+  background: rgba(0,212,255,.08); border:1px solid var(--border);
+  color: var(--cyan); font-size:12px; font-weight:600; letter-spacing:.06em;
+  text-transform:uppercase; margin-bottom:24px;
+}
+.hero-tag::before {
+  content:''; width:6px; height:6px; border-radius:50%;
+  background: var(--cyan); box-shadow:0 0 6px var(--cyan);
+  animation: blink 1.5s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+h1 {
+  font-size: clamp(2rem,5vw,3.2rem); font-weight:800;
+  color: var(--text-bright); margin-bottom:16px; line-height:1.2;
+}
+h1 .hl { color: var(--cyan); }
+.hero-sub {
+  font-size:1.05rem; color:var(--text-dim); margin-bottom:32px; max-width:560px; margin-inline:auto;
+}
+.hero-links { display:flex; justify-content:center; gap:16px; flex-wrap:wrap; }
+.btn {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:10px 22px; border-radius:8px; font-size:14px; font-weight:600;
+  text-decoration:none; transition:all .2s var(--ease); cursor:pointer;
+}
+.btn-primary {
+  background: rgba(0,212,255,.12); border:1px solid var(--cyan);
+  color: var(--cyan);
+}
+.btn-primary:hover { background: rgba(0,212,255,.2); box-shadow: var(--glow-c); }
+.btn-ghost {
+  background: transparent; border:1px solid var(--border);
+  color: var(--text-dim);
+}
+.btn-ghost:hover { border-color: var(--border2); color: var(--text); }
 
-  /* ─── status badges ─── */
-  .status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-right: 8px; margin-bottom: 8px; }
-  .s200 { background: #0d2410; color: var(--green); border: 1px solid #1a4d1a; }
-  .s204 { background: #0d2410; color: var(--green); border: 1px solid #1a4d1a; }
-  .s400 { background: #2e1a1a; color: var(--red); border: 1px solid #4d1a1a; }
-  .s500 { background: #2e1a1a; color: var(--red); border: 1px solid #4d1a1a; }
+/* ── QUICK OVERVIEW ── */
+.overview {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:16px; max-width:900px; margin:0 auto 80px; padding:0 32px;
+}
+.ov-card {
+  background: var(--panel); border:1px solid var(--border2);
+  border-radius:12px; padding:20px;
+  transition:border-color .2s, box-shadow .2s;
+}
+.ov-card:hover { border-color:var(--border); box-shadow: var(--glow-c); }
+.ov-num { font-size:2rem; font-weight:800; color:var(--cyan); line-height:1; margin-bottom:4px; }
+.ov-label { font-size:12px; color:var(--text-dim); font-weight:600; letter-spacing:.05em; text-transform:uppercase; }
+.ov-desc { font-size:13px; color:var(--text); margin-top:6px; }
 
-  /* ─── session lifecycle ─── */
-  .lifecycle { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
-  .lc-step { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 14px; font-size: 13px; }
-  .lc-arrow { color: var(--amber-dim); font-size: 18px; }
+/* ── MAIN CONTENT ── */
+main { max-width:960px; margin:0 auto; padding:0 32px 100px; }
 
-  .divider { border: none; border-top: 1px solid var(--border); margin: 0; }
-  footer { border-top: 1px solid var(--border); padding: 24px; text-align: center; color: var(--text-dim); font-size: 13px; }
-  footer a { color: var(--amber); text-decoration: none; }
+/* ── SECTION ── */
+.section { margin-bottom:80px; }
+.section-header {
+  display:flex; align-items:center; gap:16px; margin-bottom:32px;
+  padding-bottom:16px; border-bottom:1px solid var(--border2);
+}
+.section-icon {
+  width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+  font-size:18px; flex-shrink:0;
+}
+.icon-cyan  { background:rgba(0,212,255,.1); border:1px solid rgba(0,212,255,.2); color:var(--cyan); }
+.icon-purple{ background:rgba(157,113,255,.1); border:1px solid rgba(157,113,255,.2); color:var(--purple); }
+.icon-green { background:rgba(74,250,122,.1); border:1px solid rgba(74,250,122,.2); color:var(--green); }
+.icon-amber { background:rgba(255,179,64,.1); border:1px solid rgba(255,179,64,.2); color:var(--amber); }
+.section-title { font-size:1.5rem; font-weight:700; color:var(--text-bright); }
+.section-subtitle { font-size:13px; color:var(--text-dim); margin-top:2px; }
+
+/* ── ENDPOINT CARD ── */
+.ep-card {
+  background: var(--panel); border:1px solid var(--border2);
+  border-radius:12px; margin-bottom:24px; overflow:hidden;
+  transition:border-color .2s;
+}
+.ep-card:hover { border-color:var(--border); }
+.ep-header {
+  display:flex; align-items:center; gap:12px;
+  padding:16px 24px; border-bottom:1px solid var(--border2);
+  cursor:pointer; user-select:none;
+}
+.ep-header:hover { background:rgba(0,212,255,.02); }
+.method-badge {
+  font-family:'JetBrains Mono','Courier New',monospace;
+  font-size:11px; font-weight:700; padding:4px 10px;
+  border-radius:5px; min-width:58px; text-align:center; letter-spacing:.06em;
+}
+.m-post   { background:rgba(74,250,122,.1); color:var(--green); border:1px solid rgba(74,250,122,.25); }
+.m-get    { background:rgba(0,212,255,.1); color:var(--cyan); border:1px solid rgba(0,212,255,.25); }
+.m-delete { background:rgba(255,77,106,.1); color:var(--red); border:1px solid rgba(255,77,106,.25); }
+.ep-path {
+  font-family:'JetBrains Mono','Courier New',monospace;
+  font-size:14px; color:var(--text-bright); font-weight:600;
+}
+.ep-path .param { color:var(--amber); }
+.ep-desc { color:var(--text-dim); font-size:13px; margin-left:auto; }
+.ep-toggle { color:var(--text-dim); font-size:12px; margin-left:8px; transition:transform .2s; }
+.ep-toggle.open { transform:rotate(180deg); }
+.ep-body { padding:24px; display:none; }
+.ep-body.open { display:block; }
+
+.subsection-title {
+  font-size:12px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--text-dim); margin:0 0 12px;
+}
+pre.code-block {
+  background: #020c18; border:1px solid var(--border2); border-radius:8px;
+  padding:16px 20px; font-family:'JetBrains Mono','Courier New',monospace;
+  font-size:13px; color:var(--text); line-height:1.7; overflow-x:auto;
+  margin-bottom:20px; position:relative;
+}
+pre.code-block .key   { color:var(--cyan); }
+pre.code-block .str   { color:var(--green); }
+pre.code-block .num   { color:var(--purple); }
+pre.code-block .comm  { color:var(--text-dim); font-style:italic; }
+pre.code-block .kw    { color:var(--amber); }
+.copy-btn {
+  position:absolute; top:10px; right:10px;
+  background:rgba(0,212,255,.08); border:1px solid var(--border2);
+  color:var(--text-dim); font-size:11px; padding:3px 9px; border-radius:4px;
+  cursor:pointer; transition:all .2s;
+}
+.copy-btn:hover { background:rgba(0,212,255,.15); color:var(--cyan); }
+
+.field-table { width:100%; border-collapse:collapse; margin-bottom:20px; font-size:13px; }
+.field-table th {
+  text-align:left; color:var(--text-dim); font-weight:600; font-size:11px;
+  text-transform:uppercase; letter-spacing:.06em;
+  padding:8px 12px; border-bottom:1px solid var(--border2);
+}
+.field-table td { padding:10px 12px; border-bottom:1px solid rgba(0,212,255,.04); }
+.field-table tr:last-child td { border-bottom:none; }
+.field-table td:first-child { font-family:'JetBrains Mono','Courier New',monospace; color:var(--cyan); }
+.field-table td:nth-child(2) { color:var(--purple); font-family:'JetBrains Mono','Courier New',monospace; font-size:12px; }
+.tag {
+  display:inline-block; font-size:10px; padding:2px 7px; border-radius:8px;
+  font-weight:700; letter-spacing:.04em; margin-left:4px; vertical-align:middle;
+}
+.tag-req { background:rgba(255,179,64,.1); color:var(--amber); border:1px solid rgba(255,179,64,.3); }
+.tag-opt { background:rgba(106,128,153,.1); color:var(--text-dim); border:1px solid rgba(106,128,153,.2); }
+.status-badge {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:4px 12px; border-radius:5px; font-size:12px; font-weight:700;
+  margin:0 6px 8px 0; font-family:'JetBrains Mono','Courier New',monospace;
+}
+.s2xx { background:rgba(74,250,122,.08); color:var(--green); border:1px solid rgba(74,250,122,.25); }
+.s4xx { background:rgba(255,77,106,.08); color:var(--red); border:1px solid rgba(255,77,106,.25); }
+
+/* ── SSE STREAM DEMO ── */
+.sse-demo-wrap {
+  background:#020c18; border:1px solid var(--border2); border-radius:12px;
+  overflow:hidden; margin-bottom:32px;
+}
+.sse-demo-toolbar {
+  display:flex; align-items:center; gap:8px; padding:12px 16px;
+  border-bottom:1px solid var(--border2); background:var(--panel);
+}
+.sse-dot { width:10px; height:10px; border-radius:50%; }
+.sse-dot-r { background:#ff5f57; }
+.sse-dot-y { background:#febc2e; }
+.sse-dot-g { background:#28c840; }
+.sse-demo-title { font-size:12px; color:var(--text-dim); margin-left:8px; font-family:'JetBrains Mono','Courier New',monospace; }
+.sse-demo-body { padding:16px 20px; min-height:200px; max-height:360px; overflow-y:auto; }
+.sse-line {
+  font-family:'JetBrains Mono','Courier New',monospace;
+  font-size:12.5px; line-height:1.9; display:flex; gap:16px;
+  opacity:0; transform:translateY(4px);
+  animation:sseFadeIn .3s var(--ease) forwards;
+}
+@keyframes sseFadeIn { to{opacity:1;transform:none} }
+.sse-event-type { color:var(--purple); min-width:140px; }
+.sse-data { color:var(--text); }
+.sse-data .jk { color:var(--cyan); }
+.sse-data .jv { color:var(--green); }
+.sse-data .jn { color:var(--amber); }
+.sse-ctrl { display:flex; align-items:center; gap:10px; padding:12px 16px; border-top:1px solid var(--border2); background:var(--panel); }
+.sse-ctrl button {
+  background:rgba(0,212,255,.08); border:1px solid var(--border);
+  color:var(--cyan); font-size:12px; padding:5px 14px; border-radius:5px;
+  cursor:pointer; transition:all .2s;
+}
+.sse-ctrl button:hover { background:rgba(0,212,255,.15); }
+.sse-status { font-size:12px; color:var(--text-dim); margin-left:auto; }
+
+/* ── SSE EVENT TABLE ── */
+.event-table { width:100%; border-collapse:collapse; margin-bottom:24px; }
+.event-table th {
+  text-align:left; padding:10px 14px; font-size:11px; font-weight:700;
+  letter-spacing:.07em; text-transform:uppercase; color:var(--text-dim);
+  border-bottom:1px solid var(--border2); background:rgba(0,0,0,.2);
+}
+.event-table td { padding:11px 14px; border-bottom:1px solid rgba(0,212,255,.04); font-size:13px; vertical-align:top; }
+.event-table tr:hover td { background:rgba(0,212,255,.02); }
+.event-name {
+  font-family:'JetBrains Mono','Courier New',monospace;
+  color:var(--purple); font-size:12px; white-space:nowrap;
+}
+.event-payload { font-family:'JetBrains Mono','Courier New',monospace; color:var(--cyan); font-size:11.5px; }
+.event-group-header td {
+  padding:6px 14px; background:rgba(157,113,255,.05);
+  font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--purple);
+  text-transform:uppercase;
+}
+
+/* ── SESSION LIFECYCLE ANIMATION ── */
+.lifecycle-wrap {
+  background:var(--panel); border:1px solid var(--border2); border-radius:12px;
+  padding:32px; margin-bottom:24px;
+}
+.lc-row {
+  display:flex; align-items:stretch; gap:0;
+  overflow-x:auto; padding-bottom:8px;
+}
+.lc-step {
+  display:flex; flex-direction:column; align-items:center; min-width:160px; flex:1;
+}
+.lc-node {
+  width:48px; height:48px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; border:2px solid; position:relative; z-index:1;
+  transition: box-shadow .3s;
+}
+.lc-node-active { animation: lcPulse 1.5s ease-in-out infinite; }
+@keyframes lcPulse { 0%,100%{box-shadow:0 0 0 0 rgba(0,212,255,.3)} 50%{box-shadow:0 0 0 10px rgba(0,212,255,0)} }
+.lc-label { font-size:12px; color:var(--text-dim); text-align:center; margin-top:8px; line-height:1.4; }
+.lc-label strong { display:block; color:var(--text); font-size:13px; margin-bottom:2px; }
+.lc-connector {
+  flex:1; height:2px; background:linear-gradient(90deg, var(--cyan2), transparent);
+  margin-top:23px; min-width:24px; position:relative;
+}
+.lc-connector::after {
+  content:''; position:absolute; right:-1px; top:-4px;
+  border-left:8px solid var(--cyan2); border-top:4px solid transparent; border-bottom:4px solid transparent;
+}
+.lc-file {
+  margin-top:20px; padding:8px 14px; border-radius:7px;
+  background:rgba(0,212,255,.06); border:1px solid var(--border2);
+  font-family:'JetBrains Mono','Courier New',monospace; font-size:11px; color:var(--text-dim);
+  text-align:center; max-width:140px;
+}
+
+/* ── CONFIG TABLE ── */
+.config-table { width:100%; border-collapse:collapse; }
+.config-table th {
+  text-align:left; padding:10px 14px; font-size:11px; font-weight:700;
+  letter-spacing:.07em; text-transform:uppercase; color:var(--text-dim);
+  border-bottom:1px solid var(--border2);
+}
+.config-table td { padding:11px 14px; border-bottom:1px solid rgba(0,212,255,.04); font-size:13px; }
+.config-table td:first-child { font-family:'JetBrains Mono','Courier New',monospace; color:var(--amber); font-size:12px; }
+.config-table td:nth-child(2) { color:var(--text-dim); font-family:'JetBrains Mono','Courier New',monospace; font-size:12px; }
+.required-dot { color:var(--red); }
+
+/* ── CURL QUICK ── */
+.curl-block {
+  background:#020c18; border:1px solid var(--border2); border-radius:8px;
+  padding:0; overflow:hidden; margin-bottom:16px;
+}
+.curl-label { padding:8px 14px; background:var(--panel); font-size:11px; color:var(--text-dim); border-bottom:1px solid var(--border2); }
+.curl-body { padding:14px 18px; font-family:'JetBrains Mono','Courier New',monospace; font-size:13px; color:var(--text); line-height:1.7; overflow-x:auto; }
+.curl-body .cmd { color:var(--cyan); }
+.curl-body .flag { color:var(--purple); }
+.curl-body .val { color:var(--green); }
+.curl-body .comm { color:var(--text-dim); font-style:italic; }
+
+/* ── FADE IN ── */
+.fade-up { opacity:0; transform:translateY(20px); transition:opacity .5s var(--ease),transform .5s var(--ease); }
+.fade-up.visible { opacity:1; transform:none; }
+
+/* ── FOOTER ── */
+footer {
+  border-top:1px solid var(--border2);
+  padding:32px; text-align:center; color:var(--text-dim); font-size:13px;
+}
+footer a { color:var(--cyan); text-decoration:none; }
+footer a:hover { text-decoration:underline; }
 </style>
 </head>
 <body>
 
+<!-- TOPBAR -->
+<div class="topbar">
+  <a href="index.html" class="topbar-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+    </svg>
+    claude-code-java
+  </a>
+  <span class="topbar-badge">REST API</span>
+  <nav class="topbar-nav">
+    <a href="index.html">主页</a>
+    <a href="#sync">同步接口</a>
+    <a href="#sse">SSE 流式</a>
+    <a href="#sessions">会话接口</a>
+    <a href="#config">配置</a>
+  </nav>
+</div>
+
+<!-- HERO -->
 <div class="hero">
-  <div class="badge">REST API Reference</div>
-  <h1><span>claude-code-java</span> REST API</h1>
-  <p class="subtitle">Spring Boot 3.2 · OpenAPI-friendly · 会话持久化</p>
-  <a href="index.html" class="back">← 返回项目主页</a>
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-tag">REST API Reference</div>
+  <h1><span class="hl">claude-code-java</span> API 文档</h1>
+  <p class="hero-sub">Spring Boot 3.2 · SSE 流式推送 · 14 种事件类型 · 会话持久化</p>
+  <div class="hero-links">
+    <a href="#sync" class="btn btn-primary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      浏览端点
+    </a>
+    <a href="index.html" class="btn btn-ghost">← 返回主页</a>
+  </div>
+</div>
+
+<!-- OVERVIEW STATS -->
+<div class="overview">
+  <div class="ov-card fade-up">
+    <div class="ov-num">8</div>
+    <div class="ov-label">API 端点</div>
+    <div class="ov-desc">覆盖聊天、流式、会话、历史</div>
+  </div>
+  <div class="ov-card fade-up">
+    <div class="ov-num">14</div>
+    <div class="ov-label">SSE 事件类型</div>
+    <div class="ov-desc">思考、工具、压缩、Teammate、完成</div>
+  </div>
+  <div class="ov-card fade-up">
+    <div class="ov-num">∞</div>
+    <div class="ov-label">多轮对话</div>
+    <div class="ov-desc">文件持久化，进程重启自动恢复</div>
+  </div>
+  <div class="ov-card fade-up">
+    <div class="ov-num">3</div>
+    <div class="ov-label">压缩层级</div>
+    <div class="ov-desc">Micro / Auto / Manual，transcript 链</div>
+  </div>
 </div>
 
 <main>
 
-  <!-- ═══ BASE URL ═══ -->
-  <h2>Base URL</h2>
-  <pre><code>http://localhost:8080</code></pre>
-  <p>启动方式：</p>
-  <pre><code>mvn exec:java -pl claude-code-java-start \
-  -Dexec.mainClass="ai.claude.code.Application"</code></pre>
-  <p>健康检查：</p>
-  <pre><code>curl http://localhost:8080/actuator/health
-# {"status":"UP"}</code></pre>
+<!-- ═══ BASE URL ═══ -->
+<div class="section fade-up" id="start">
+  <div class="section-header">
+    <div class="section-icon icon-cyan">⚡</div>
+    <div>
+      <div class="section-title">快速开始</div>
+      <div class="section-subtitle">Base URL · 健康检查</div>
+    </div>
+  </div>
 
-  <!-- ═══ ENDPOINTS ═══ -->
-  <h2>API 端点</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+    <div>
+      <div class="subsection-title" style="margin-bottom:8px;">启动服务</div>
+      <div class="curl-block">
+        <div class="curl-label">Web Playground + REST API（推荐）</div>
+        <div class="curl-body">mvn exec:java -pl claude-code-java-start \<br>  <span class="flag">-Dexec.mainClass</span>=<span class="val">"ai.claude.code.Application"</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="subsection-title" style="margin-bottom:8px;">健康检查</div>
+      <div class="curl-block">
+        <div class="curl-label">GET /actuator/health</div>
+        <div class="curl-body"><span class="cmd">curl</span> http://localhost:8080/actuator/health<br><span class="comm"># {"status":"UP"}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <pre class="code-block" style="margin-bottom:0;"><span class="comm"># Base URL</span>
+<span class="kw">http://localhost:8080</span>
+
+<span class="comm"># 所有接口均返回 application/json</span>
+<span class="comm"># SSE 流式接口返回 text/event-stream</span></pre>
+</div>
+
+<!-- ═══ SYNC ENDPOINTS ═══ -->
+<div class="section fade-up" id="sync">
+  <div class="section-header">
+    <div class="section-icon icon-green">◈</div>
+    <div>
+      <div class="section-title">同步接口</div>
+      <div class="section-subtitle">阻塞等待 Agent 完整响应后返回，适合简单调用</div>
+    </div>
+  </div>
 
   <!-- POST /api/chat -->
-  <div class="endpoint">
-    <div class="ep-header">
-      <span class="method post">POST</span>
+  <div class="ep-card">
+    <div class="ep-header" onclick="toggleEp(this)">
+      <span class="method-badge m-post">POST</span>
       <span class="ep-path">/api/chat</span>
-      <span class="ep-desc">发送消息给 Agent</span>
+      <span class="ep-desc">发送消息给 Agent（阻塞直到回复完整）</span>
+      <span class="ep-toggle">▼</span>
     </div>
-    <div class="ep-body">
-      <h3>请求体 Request Body</h3>
+    <div class="ep-body open">
+      <div class="subsection-title">Request Body</div>
       <table class="field-table">
         <tr><th>字段</th><th>类型</th><th>说明</th></tr>
-        <tr><td>sessionId <span class="tag tag-opt">可选</span></td><td>string</td><td>会话 ID。省略时自动生成 UUID，返回后请保存用于后续请求。</td></tr>
-        <tr><td>message <span class="tag tag-req">必填</span></td><td>string</td><td>用户输入的消息文本。</td></tr>
+        <tr><td>sessionId<span class="tag tag-opt">可选</span></td><td>string</td><td>会话 ID，省略时自动生成 UUID</td></tr>
+        <tr><td>message<span class="tag tag-req">必填</span></td><td>string</td><td>用户输入的消息文本</td></tr>
       </table>
-      <pre><code>{
-  "sessionId": "550e8400-e29b-41d4-a716-446655440000",
-  "message": "帮我列出当前目录的文件"
-}</code></pre>
-
-      <h3>响应 Response</h3>
-      <div>
-        <span class="status s200">200 OK</span>
+      <pre class="code-block">{
+  <span class="key">"sessionId"</span>: <span class="str">"550e8400-e29b-41d4-a716-446655440000"</span>,
+  <span class="key">"message"</span>: <span class="str">"帮我列出当前目录的文件"</span>
+}</pre>
+      <div class="subsection-title">Response</div>
+      <span class="status-badge s2xx">200 OK</span>
+      <table class="field-table">
+        <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+        <tr><td>sessionId</td><td>string</td><td>会话 ID（首次时为自动生成 UUID）</td></tr>
+        <tr><td>reply</td><td>string</td><td>Agent 的完整回复文本</td></tr>
+      </table>
+      <pre class="code-block">{
+  <span class="key">"sessionId"</span>: <span class="str">"550e8400-e29b-41d4-a716-446655440000"</span>,
+  <span class="key">"reply"</span>: <span class="str">"当前目录包含：pom.xml, README.md, src/ ..."</span>
+}</pre>
+      <div class="subsection-title">curl 示例</div>
+      <div class="curl-block">
+        <div class="curl-label">首次对话</div>
+        <div class="curl-body"><span class="cmd">curl</span> <span class="flag">-X POST</span> http://localhost:8080/api/chat \<br>  <span class="flag">-H</span> <span class="val">'Content-Type: application/json'</span> \<br>  <span class="flag">-d</span> <span class="val">'{"message": "你好，介绍一下这个项目"}'</span></div>
       </div>
-      <table class="field-table">
-        <tr><th>字段</th><th>类型</th><th>说明</th></tr>
-        <tr><td>sessionId</td><td>string</td><td>会话 ID（首次请求时为自动生成的 UUID）。</td></tr>
-        <tr><td>reply</td><td>string</td><td>Agent 的回复文本。</td></tr>
-      </table>
-      <pre><code>{
-  "sessionId": "550e8400-e29b-41d4-a716-446655440000",
-  "reply": "当前目录包含以下文件：pom.xml, README.md, src/ ..."
-}</code></pre>
-
-      <h3>curl 示例</h3>
-      <pre><code># 首次对话（省略 sessionId，系统自动生成）
-curl -X POST http://localhost:8080/api/chat \
-  -H 'Content-Type: application/json' \
-  -d '{"message": "你好，介绍一下这个项目"}'
-
-# 继续对话（传入上一次返回的 sessionId）
-curl -X POST http://localhost:8080/api/chat \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "sessionId": "550e8400-e29b-41d4-a716-446655440000",
-    "message": "帮我创建一个 Hello.java"
-  }'</code></pre>
+      <div class="curl-block">
+        <div class="curl-label">继续对话（传入 sessionId）</div>
+        <div class="curl-body"><span class="cmd">curl</span> <span class="flag">-X POST</span> http://localhost:8080/api/chat \<br>  <span class="flag">-H</span> <span class="val">'Content-Type: application/json'</span> \<br>  <span class="flag">-d</span> <span class="val">'{"sessionId":"550e...", "message":"帮我创建 Hello.java"}'</span></div>
+      </div>
     </div>
   </div>
 
   <!-- DELETE /api/sessions/{id} -->
-  <div class="endpoint">
-    <div class="ep-header">
-      <span class="method delete">DELETE</span>
-      <span class="ep-path">/api/sessions/{sessionId}</span>
+  <div class="ep-card">
+    <div class="ep-header" onclick="toggleEp(this)">
+      <span class="method-badge m-delete">DELETE</span>
+      <span class="ep-path">/api/sessions/<span class="param">{sessionId}</span></span>
       <span class="ep-desc">清除会话历史</span>
+      <span class="ep-toggle">▼</span>
     </div>
-    <div class="ep-body">
-      <h3>路径参数 Path Parameters</h3>
+    <div class="ep-body open">
+      <div class="subsection-title">Path Parameters</div>
       <table class="field-table">
         <tr><th>参数</th><th>类型</th><th>说明</th></tr>
-        <tr><td>sessionId <span class="tag tag-req">必填</span></td><td>string</td><td>要清除的会话 ID。</td></tr>
+        <tr><td>sessionId<span class="tag tag-req">必填</span></td><td>string</td><td>要清除的会话 ID</td></tr>
       </table>
-
-      <h3>响应 Response</h3>
-      <div>
-        <span class="status s204">204 No Content</span>
+      <span class="status-badge s2xx">204 No Content</span>
+      <p style="font-size:13px;color:var(--text-dim);margin-top:8px;">删除成功，响应体为空。sessionId 不存在也返回 204（幂等）。</p>
+      <div class="curl-block" style="margin-top:16px;">
+        <div class="curl-label">删除会话</div>
+        <div class="curl-body"><span class="cmd">curl</span> <span class="flag">-X DELETE</span> http://localhost:8080/api/sessions/550e8400-...</div>
       </div>
-      <p>删除成功，响应体为空。若 sessionId 不存在也返回 204（幂等）。</p>
+    </div>
+  </div>
+</div>
 
-      <h3>curl 示例</h3>
-      <pre><code>curl -X DELETE \
-  http://localhost:8080/api/sessions/550e8400-e29b-41d4-a716-446655440000</code></pre>
+<!-- ═══ SSE STREAM ═══ -->
+<div class="section fade-up" id="sse">
+  <div class="section-header">
+    <div class="section-icon icon-purple">⚡</div>
+    <div>
+      <div class="section-title">SSE 流式接口</div>
+      <div class="section-subtitle">实时推送，14 种事件类型，支持思考/工具/压缩/Teammate 全流程</div>
     </div>
   </div>
 
-  <!-- GET /actuator/health -->
-  <div class="endpoint">
-    <div class="ep-header">
-      <span class="method post" style="background:#1a2530;color:var(--cyan);border-color:var(--cyan-dim)">GET</span>
-      <span class="ep-path">/actuator/health</span>
-      <span class="ep-desc">健康检查</span>
+  <!-- POST /api/chat/stream -->
+  <div class="ep-card">
+    <div class="ep-header" onclick="toggleEp(this)">
+      <span class="method-badge m-post">POST</span>
+      <span class="ep-path">/api/chat/stream</span>
+      <span class="ep-desc">SSE 流式对话（text/event-stream）</span>
+      <span class="ep-toggle">▼</span>
     </div>
-    <div class="ep-body">
-      <pre><code>{"status": "UP"}</code></pre>
+    <div class="ep-body open">
+      <div class="subsection-title">Request Body（与同步接口相同）</div>
+      <pre class="code-block">{
+  <span class="key">"sessionId"</span>: <span class="str">"可选"</span>,
+  <span class="key">"message"</span>: <span class="str">"用户输入"</span>
+}</pre>
+      <div class="subsection-title">SSE 事件格式</div>
+      <pre class="code-block"><span class="comm"># 每个事件两行：</span>
+<span class="kw">event:</span> <span class="str">event_type</span>
+<span class="kw">data:</span>  <span class="str">{"key":"value"}</span>
+
+<span class="comm"># 结束时（无 data）：</span>
+<span class="kw">event:</span> <span class="str">done</span>
+<span class="kw">data:</span>  <span class="str">{}</span></pre>
     </div>
   </div>
 
-  <!-- ═══ SESSION LIFECYCLE ═══ -->
-  <h2>会话生命周期</h2>
-  <p>每个 sessionId 对应磁盘上的 <code>.sessions/{sessionId}.json</code>，存储完整消息历史。进程重启后自动恢复。</p>
-
-  <div class="lifecycle">
-    <div class="lc-step">POST /api/chat<br><small>省略 sessionId</small></div>
-    <div class="lc-arrow">→</div>
-    <div class="lc-step">自动生成 UUID<br><small>返回 sessionId</small></div>
-    <div class="lc-arrow">→</div>
-    <div class="lc-step">POST /api/chat<br><small>携带 sessionId</small></div>
-    <div class="lc-arrow">→</div>
-    <div class="lc-step">加载历史 + 运行<br><small>持久化保存</small></div>
-    <div class="lc-arrow">→</div>
-    <div class="lc-step">DELETE /api/sessions/{id}<br><small>清除历史</small></div>
+  <!-- SSE LIVE DEMO -->
+  <div class="subsection-title" style="margin-bottom:12px;">SSE 事件流实时演示</div>
+  <div class="sse-demo-wrap">
+    <div class="sse-demo-toolbar">
+      <span class="sse-dot sse-dot-r"></span>
+      <span class="sse-dot sse-dot-y"></span>
+      <span class="sse-dot sse-dot-g"></span>
+      <span class="sse-demo-title">POST /api/chat/stream — 实时事件流</span>
+    </div>
+    <div class="sse-demo-body" id="sseDemoBody"></div>
+    <div class="sse-ctrl">
+      <button onclick="replaySse()">▶ 重播</button>
+      <button onclick="pauseSse()">⏸ 暂停</button>
+      <span class="sse-status" id="sseStatus">等待开始...</span>
+    </div>
   </div>
 
-  <!-- ═══ ERROR HANDLING ═══ -->
-  <h2>错误处理</h2>
-  <div>
-    <span class="status s400">400 Bad Request</span>
-    <span class="status s500">500 Internal Server Error</span>
-  </div>
-  <p>Spring Boot 默认返回标准错误结构：</p>
-  <pre><code>{
-  "timestamp": "2026-04-14T12:00:00.000+00:00",
-  "status": 400,
-  "error": "Bad Request",
-  "message": "...",
-  "path": "/api/chat"
-}</code></pre>
+  <!-- SSE EVENT TYPE TABLE -->
+  <div class="subsection-title" style="margin-bottom:12px;">全部事件类型（14 种）</div>
+  <table class="event-table">
+    <tr><th>事件名</th><th>Payload 字段</th><th>说明</th></tr>
+    <tr class="event-group-header"><td colspan="3">会话标识</td></tr>
+    <tr>
+      <td><span class="event-name">session_id</span></td>
+      <td><span class="event-payload">{ sessionId }</span></td>
+      <td>流开始时推送，用于客户端绑定会话</td>
+    </tr>
+    <tr class="event-group-header"><td colspan="3">思考过程（Extended Thinking）</td></tr>
+    <tr>
+      <td><span class="event-name">thinking_start</span></td>
+      <td><span class="event-payload">{ }</span></td>
+      <td>模型开始思考推理</td>
+    </tr>
+    <tr>
+      <td><span class="event-name">thinking_text</span></td>
+      <td><span class="event-payload">{ text }</span></td>
+      <td>思考内容增量（可能多次）</td>
+    </tr>
+    <tr>
+      <td><span class="event-name">thinking_end</span></td>
+      <td><span class="event-payload">{ ms }</span></td>
+      <td>思考结束，ms 为耗时毫秒</td>
+    </tr>
+    <tr class="event-group-header"><td colspan="3">文本流式回复</td></tr>
+    <tr>
+      <td><span class="event-name">text_delta</span></td>
+      <td><span class="event-payload">{ text }</span></td>
+      <td>文字回复增量，可多次，累积得完整回复</td>
+    </tr>
+    <tr class="event-group-header"><td colspan="3">工具调用（主 Agent）</td></tr>
+    <tr>
+      <td><span class="event-name">tool_start</span></td>
+      <td><span class="event-payload">{ toolName, toolCallId, input }</span></td>
+      <td>工具开始执行，input 为 JSON 字符串</td>
+    </tr>
+    <tr>
+      <td><span class="event-name">tool_end</span></td>
+      <td><span class="event-payload">{ toolCallId, output }</span></td>
+      <td>工具成功完成，output 为结果字符串</td>
+    </tr>
+    <tr>
+      <td><span class="event-name">tool_error</span></td>
+      <td><span class="event-payload">{ toolCallId, error }</span></td>
+      <td>工具执行失败</td>
+    </tr>
+    <tr class="event-group-header"><td colspan="3">Teammate（Agent Teams）</td></tr>
+    <tr>
+      <td><span class="event-name">team_tool_start</span></td>
+      <td><span class="event-payload">{ agentId, toolName }</span></td>
+      <td>Teammate 开始执行某工具</td>
+    </tr>
+    <tr>
+      <td><span class="event-name">team_tool_end</span></td>
+      <td><span class="event-payload">{ agentId, toolName }</span></td>
+      <td>Teammate 工具执行完成</td>
+    </tr>
+    <tr>
+      <td><span class="event-name">team_text</span></td>
+      <td><span class="event-payload">{ agentId, text }</span></td>
+      <td>Teammate LLM 文字输出（摘要）</td>
+    </tr>
+    <tr>
+      <td><span class="event-name">team_done</span></td>
+      <td><span class="event-payload">{ agentId }</span></td>
+      <td>Teammate 完成全部工作，退出</td>
+    </tr>
+    <tr class="event-group-header"><td colspan="3">上下文压缩</td></tr>
+    <tr>
+      <td><span class="event-name">compact_done</span></td>
+      <td><span class="event-payload">{ summary, transcriptFile }</span></td>
+      <td>压缩完成；transcriptFile 为 basename，可通过 /api/transcripts 加载历史</td>
+    </tr>
+    <tr class="event-group-header"><td colspan="3">完成 / 错误</td></tr>
+    <tr>
+      <td><span class="event-name">done</span></td>
+      <td><span class="event-payload">{ }</span></td>
+      <td>整次对话完成，流关闭</td>
+    </tr>
+    <tr>
+      <td><span class="event-name">error</span></td>
+      <td><span class="event-payload">{ message }</span></td>
+      <td>发生错误，流关闭</td>
+    </tr>
+  </table>
 
-  <!-- ═══ CONFIGURATION ═══ -->
-  <h2>服务器配置</h2>
-  <p>通过 <code>claude-code-java-start/src/main/resources/application.properties</code> 修改：</p>
-  <pre><code>server.port=8080                    # 监听端口
-spring.application.name=claude-code-java</code></pre>
-  <p>也可通过命令行参数覆盖：</p>
-  <pre><code>mvn exec:java -pl claude-code-java-start \
-  -Dexec.mainClass="ai.claude.code.Application" \
-  -Dserver.port=9090</code></pre>
+  <div class="subsection-title" style="margin-bottom:12px;">客户端接收示例</div>
+  <pre class="code-block"><span class="comm">// JavaScript — fetch + ReadableStream 手动解析</span>
+<span class="kw">const</span> resp = <span class="kw">await</span> fetch(<span class="str">'/api/chat/stream'</span>, {
+  method: <span class="str">'POST'</span>,
+  headers: { <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span> },
+  body: JSON.stringify({ sessionId, message })
+});
+<span class="kw">const</span> reader = resp.body.getReader();
+<span class="kw">const</span> decoder = <span class="kw">new</span> TextDecoder();
+<span class="kw">let</span> buf = <span class="str">''</span>;
+
+<span class="kw">while</span> (<span class="kw">true</span>) {
+  <span class="kw">const</span> { done, value } = <span class="kw">await</span> reader.read();
+  <span class="kw">if</span> (done) <span class="kw">break</span>;
+  buf += decoder.decode(value, { stream: <span class="kw">true</span> });
+  <span class="kw">const</span> lines = buf.split(<span class="str">'\n'</span>);
+  buf = lines.pop();  <span class="comm">// 保留不完整的行</span>
+  <span class="kw">let</span> eventType = <span class="str">''</span>;
+  <span class="kw">for</span> (<span class="kw">const</span> line <span class="kw">of</span> lines) {
+    <span class="kw">if</span> (line.startsWith(<span class="str">'event:'</span>)) eventType = line.slice(6).trim();
+    <span class="kw">if</span> (line.startsWith(<span class="str">'data:'</span>)) {
+      <span class="kw">const</span> payload = JSON.parse(line.slice(5).trim());
+      handleSseEvent(eventType, payload);  <span class="comm">// 业务处理</span>
+    }
+  }
+}</pre>
+</div>
+
+<!-- ═══ SESSIONS & HISTORY ═══ -->
+<div class="section fade-up" id="sessions">
+  <div class="section-header">
+    <div class="section-icon icon-amber">⊞</div>
+    <div>
+      <div class="section-title">会话与历史接口</div>
+      <div class="section-subtitle">查询会话列表、消息历史、Teammate 子会话、压缩前 transcript</div>
+    </div>
+  </div>
+
+  <!-- GET /api/sessions -->
+  <div class="ep-card">
+    <div class="ep-header" onclick="toggleEp(this)">
+      <span class="method-badge m-get">GET</span>
+      <span class="ep-path">/api/sessions</span>
+      <span class="ep-desc">获取所有 Lead 会话（含 Teammate 数量）</span>
+      <span class="ep-toggle">▼</span>
+    </div>
+    <div class="ep-body open">
+      <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px;">仅返回 Lead 会话（文件名不含 <code>-tm-</code>），按最后更新时间倒序。</p>
+      <div class="subsection-title">Response Array Item</div>
+      <table class="field-table">
+        <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+        <tr><td>sessionId</td><td>string</td><td>会话 UUID</td></tr>
+        <tr><td>preview</td><td>string</td><td>对话预览摘要（第一条用户消息截取）</td></tr>
+        <tr><td>updatedAt</td><td>string</td><td>最后更新时间（ISO 格式）</td></tr>
+        <tr><td>teammateCount</td><td>number</td><td>参与的 Teammate 数量（0 表示无 Agent Teams）</td></tr>
+      </table>
+      <pre class="code-block">[
+  {
+    <span class="key">"sessionId"</span>: <span class="str">"550e8400-..."</span>,
+    <span class="key">"preview"</span>: <span class="str">"帮我分析这个项目的架构"</span>,
+    <span class="key">"updatedAt"</span>: <span class="str">"2026-04-16T10:30:00"</span>,
+    <span class="key">"teammateCount"</span>: <span class="num">2</span>
+  }
+]</pre>
+    </div>
+  </div>
+
+  <!-- GET /api/sessions/{id}/messages -->
+  <div class="ep-card">
+    <div class="ep-header" onclick="toggleEp(this)">
+      <span class="method-badge m-get">GET</span>
+      <span class="ep-path">/api/sessions/<span class="param">{sessionId}</span>/messages</span>
+      <span class="ep-desc">获取完整消息历史</span>
+      <span class="ep-toggle">▼</span>
+    </div>
+    <div class="ep-body open">
+      <pre class="code-block">{
+  <span class="key">"sessionId"</span>: <span class="str">"550e8400-..."</span>,
+  <span class="key">"messages"</span>: [
+    { <span class="key">"role"</span>: <span class="str">"user"</span>, <span class="key">"content"</span>: <span class="str">"你好"</span> },
+    {
+      <span class="key">"role"</span>: <span class="str">"assistant"</span>,
+      <span class="key">"content"</span>: <span class="str">null</span>,
+      <span class="key">"tool_calls"</span>: [...],
+      <span class="key">"_reasoning"</span>: <span class="str">"思考内容"</span>,
+      <span class="key">"_reasoning_ms"</span>: <span class="num">1234</span>
+    },
+    { <span class="key">"role"</span>: <span class="str">"tool"</span>, <span class="key">"tool_call_id"</span>: <span class="str">"tc-xxx"</span>, <span class="key">"content"</span>: <span class="str">"结果"</span>, <span class="key">"_display_content"</span>: <span class="str">"完整内容"</span> }
+  ]
+}</pre>
+      <p style="font-size:12px;color:var(--text-dim);">私有字段（<code>_</code> 前缀）仅用于 UI 渲染，不会发给 LLM API。</p>
+    </div>
+  </div>
+
+  <!-- GET /api/sessions/{id}/teammates -->
+  <div class="ep-card">
+    <div class="ep-header" onclick="toggleEp(this)">
+      <span class="method-badge m-get">GET</span>
+      <span class="ep-path">/api/sessions/<span class="param">{sessionId}</span>/teammates</span>
+      <span class="ep-desc">列出该 Lead 下所有 Teammate 子会话</span>
+      <span class="ep-toggle">▼</span>
+    </div>
+    <div class="ep-body open">
+      <pre class="code-block">[
+  { <span class="key">"name"</span>: <span class="str">"alice"</span>, <span class="key">"sessionId"</span>: <span class="str">"550e8400-...-tm-alice"</span> },
+  { <span class="key">"name"</span>: <span class="str">"bob"</span>,   <span class="key">"sessionId"</span>: <span class="str">"550e8400-...-tm-bob"</span> }
+]</pre>
+      <p style="font-size:12px;color:var(--text-dim);">子会话 ID 格式：<code>{leadSessionId}-tm-{name}</code>，可进一步调用 <code>/messages</code> 获取 Teammate 工作细节。</p>
+    </div>
+  </div>
+
+  <!-- GET /api/transcripts/{filename} -->
+  <div class="ep-card">
+    <div class="ep-header" onclick="toggleEp(this)">
+      <span class="method-badge m-get">GET</span>
+      <span class="ep-path">/api/transcripts/<span class="param">{filename}</span></span>
+      <span class="ep-desc">加载压缩前历史（transcript 文件）</span>
+      <span class="ep-toggle">▼</span>
+    </div>
+    <div class="ep-body open">
+      <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px;">读取 <code>.transcripts/{filename}</code>，返回压缩前完整消息数组。basename 校验防止路径穿越（filename 仅允许 <code>[\\w\\-]+\\.json</code>）。</p>
+      <pre class="code-block"><span class="comm"># compact_done 事件携带 transcriptFile 字段</span>
+<span class="comm"># 用它直接请求：</span>
+GET /api/transcripts/<span class="str">transcript_20260416_103045.json</span>
+
+<span class="comm"># Response: 消息数组，与 /messages 格式相同</span>
+[ { <span class="key">"role"</span>: <span class="str">"user"</span>, ... }, ... ]</pre>
+      <span class="status-badge s4xx">400</span><span style="font-size:12px;color:var(--text-dim);">filename 含路径穿越字符</span><br>
+      <span class="status-badge s4xx" style="background:rgba(74,250,122,.08);color:var(--green);border-color:rgba(74,250,122,.25);">404</span><span style="font-size:12px;color:var(--text-dim);">文件不存在</span>
+    </div>
+  </div>
+
+  <!-- Session Lifecycle Animation -->
+  <div class="subsection-title" style="margin:24px 0 12px;">会话生命周期</div>
+  <div class="lifecycle-wrap">
+    <div class="lc-row">
+      <div class="lc-step">
+        <div class="lc-node lc-node-active" style="border-color:var(--cyan);background:rgba(0,212,255,.1);">📝</div>
+        <div class="lc-label"><strong>首次请求</strong>POST /api/chat<br>省略 sessionId</div>
+        <div class="lc-file">.sessions/<br>生成 UUID.json</div>
+      </div>
+      <div class="lc-connector"></div>
+      <div class="lc-step">
+        <div class="lc-node" style="border-color:var(--purple);background:rgba(157,113,255,.1);">🔄</div>
+        <div class="lc-label"><strong>继续对话</strong>携带 sessionId<br>加载历史消息</div>
+        <div class="lc-file">读取 + 写入<br>UUID.json</div>
+      </div>
+      <div class="lc-connector" style="background:linear-gradient(90deg,var(--purple),transparent);"></div>
+      <div class="lc-step">
+        <div class="lc-node" style="border-color:var(--amber);background:rgba(255,179,64,.1);">🗜</div>
+        <div class="lc-label"><strong>自动压缩</strong>消息数 ≥ 40<br>保存 transcript</div>
+        <div class="lc-file">.transcripts/<br>timestamp.json</div>
+      </div>
+      <div class="lc-connector" style="background:linear-gradient(90deg,var(--amber),transparent);"></div>
+      <div class="lc-step">
+        <div class="lc-node" style="border-color:var(--green);background:rgba(74,250,122,.1);">👥</div>
+        <div class="lc-label"><strong>Agent Teams</strong>Teammate 子会话<br>独立持久化</div>
+        <div class="lc-file">.sessions/<br>UUID-tm-alice.json</div>
+      </div>
+      <div class="lc-connector" style="background:linear-gradient(90deg,var(--green),transparent);"></div>
+      <div class="lc-step">
+        <div class="lc-node" style="border-color:var(--red);background:rgba(255,77,106,.1);">🗑</div>
+        <div class="lc-label"><strong>清除会话</strong>DELETE /sessions/{id}<br>幂等操作</div>
+        <div class="lc-file">删除<br>UUID.json</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CONFIGURATION ═══ -->
+<div class="section fade-up" id="config">
+  <div class="section-header">
+    <div class="section-icon icon-cyan">⚙</div>
+    <div>
+      <div class="section-title">配置参考</div>
+      <div class="section-subtitle">claude.properties · 环境变量 · 命令行覆盖</div>
+    </div>
+  </div>
+
+  <p style="font-size:13px;color:var(--text-dim);margin-bottom:20px;">
+    配置文件路径：<code style="color:var(--cyan);">claude-code-java-start/src/main/resources/claude.properties</code><br>
+    优先级：<span style="color:var(--green);">System.getenv()</span> &gt; <span style="color:var(--amber);">claude.properties</span> &gt; <span style="color:var(--text-dim);">默认值</span>
+  </p>
+
+  <table class="config-table" style="background:var(--panel);border:1px solid var(--border2);border-radius:12px;overflow:hidden;margin-bottom:24px;">
+    <tr><th>配置项</th><th>默认值</th><th>说明</th></tr>
+    <tr>
+      <td>OPENAI_API_KEY</td><td>—</td>
+      <td><span class="required-dot">★</span> 必填。API 密钥，优先读取同名环境变量</td>
+    </tr>
+    <tr>
+      <td>OPENAI_BASE_URL</td><td>https://api.openai.com</td>
+      <td>OpenAI 协议服务地址，兼容各种云厂商</td>
+    </tr>
+    <tr>
+      <td>OPENAI_MODEL_ID</td><td>gpt-4o</td>
+      <td>模型 ID，如 <code>claude-opus-4-6</code>、<code>deepseek-chat</code></td>
+    </tr>
+    <tr>
+      <td>CLIENT_TYPE</td><td>openai</td>
+      <td><code>openai</code> 或 <code>anthropic</code>（选择请求协议）</td>
+    </tr>
+    <tr>
+      <td>DEBUG_PRINT_PAYLOAD</td><td>false</td>
+      <td>设为 <code>true</code> 打印完整 API 请求/响应报文</td>
+    </tr>
+  </table>
+
+  <pre class="code-block"><span class="comm"># claude.properties 示例</span>
+<span class="key">OPENAI_API_KEY</span>=<span class="str">sk-xxxxxxxx</span>
+<span class="key">OPENAI_BASE_URL</span>=<span class="str">https://api.anthropic.com</span>
+<span class="key">OPENAI_MODEL_ID</span>=<span class="str">claude-opus-4-6</span>
+<span class="key">CLIENT_TYPE</span>=<span class="str">anthropic</span>
+<span class="key">DEBUG_PRINT_PAYLOAD</span>=<span class="str">false</span></pre>
+
+  <div class="subsection-title" style="margin-bottom:12px;">命令行参数覆盖</div>
+  <pre class="code-block"><span class="comm"># 修改端口</span>
+mvn exec:java -pl claude-code-java-start \
+  -Dexec.mainClass=<span class="str">"ai.claude.code.Application"</span> \
+  -Dserver.port=<span class="num">9090</span>
+
+<span class="comm"># 启用 CLI 模式</span>
+mvn exec:java -pl claude-code-java-start \
+  -Dexec.mainClass=<span class="str">"ai.claude.code.Application"</span> \
+  -Dspring.profiles.active=<span class="str">cli</span></pre>
+</div>
 
 </main>
 
@@ -233,5 +919,103 @@ spring.application.name=claude-code-java</code></pre>
   <a href="index.html">项目主页</a>
 </footer>
 
+<script>
+// ── Toggle endpoint body ──
+function toggleEp(header) {
+  const body = header.nextElementSibling;
+  const toggle = header.querySelector('.ep-toggle');
+  const isOpen = body.classList.toggle('open');
+  toggle.classList.toggle('open', isOpen);
+}
+
+// ── Intersection Observer for fade-up ──
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+// ── SSE demo ──
+const sseEvents = [
+  { type: 'session_id',      data: { sessionId: '550e8400-e29b-41d4-a716-446655440000' }, delay: 400 },
+  { type: 'thinking_start',  data: {},                delay: 300 },
+  { type: 'thinking_text',   data: { text: '用户想要分析项目结构，我应该先读取目录...' }, delay: 600 },
+  { type: 'thinking_end',    data: { ms: 1234 },      delay: 300 },
+  { type: 'tool_start',      data: { toolName: 'bash', toolCallId: 'tc-a1b2c3', input: '{"command":"ls -la"}' }, delay: 400 },
+  { type: 'team_tool_start', data: { agentId: 'alice', toolName: 'read_file' }, delay: 200 },
+  { type: 'tool_end',        data: { toolCallId: 'tc-a1b2c3', output: 'pom.xml  README.md  src/  docs/' }, delay: 500 },
+  { type: 'team_tool_end',   data: { agentId: 'alice', toolName: 'read_file' }, delay: 200 },
+  { type: 'team_text',       data: { agentId: 'alice', text: '已分析完主模块结构' }, delay: 400 },
+  { type: 'text_delta',      data: { text: '项目结构分析如下：' }, delay: 200 },
+  { type: 'text_delta',      data: { text: '\n\n- `claude-code-java-service`：核心 Agent 引擎' }, delay: 200 },
+  { type: 'text_delta',      data: { text: '\n- `claude-code-java-start`：Spring Boot 应用层' }, delay: 200 },
+  { type: 'team_done',       data: { agentId: 'alice' }, delay: 300 },
+  { type: 'compact_done',    data: { summary: '分析了项目架构，包含双模块设计...', transcriptFile: 'transcript_20260416.json' }, delay: 400 },
+  { type: 'done',            data: {},                delay: 200 },
+];
+
+const typeColors = {
+  session_id: '#6a8099', thinking_start: '#9d71ff', thinking_text: '#9d71ff',
+  thinking_end: '#9d71ff', text_delta: '#00d4ff', tool_start: '#4afa7a',
+  tool_end: '#4afa7a', tool_error: '#ff4d6a', team_tool_start: '#ffb340',
+  team_tool_end: '#ffb340', team_text: '#ffb340', team_done: '#ffb340',
+  compact_done: '#ff9d5c', done: '#4afa7a', error: '#ff4d6a'
+};
+
+let sseTimers = [];
+let ssePaused = false;
+let sseRunning = false;
+
+function colorizeJson(obj) {
+  return JSON.stringify(obj).replace(/"(\w+)":/g, (_, k) => `<span class="jk">"${k}"</span>:`)
+    .replace(/: "([^"]+)"/g, (_, v) => `: <span class="jv">"${v}"</span>`)
+    .replace(/: (\d+)/g, (_, v) => `: <span class="jn">${v}</span>`);
+}
+
+function addSseLine(type, data, delay) {
+  if (ssePaused) return;
+  const body = document.getElementById('sseDemoBody');
+  const line = document.createElement('div');
+  line.className = 'sse-line';
+  line.style.animationDelay = '0ms';
+  const color = typeColors[type] || '#c8d8e8';
+  line.innerHTML = `<span class="sse-event-type" style="color:${color}">event: ${type}</span><span class="sse-data">data: ${colorizeJson(data)}</span>`;
+  body.appendChild(line);
+  body.scrollTop = body.scrollHeight;
+  document.getElementById('sseStatus').textContent = `事件 ${type} ✓`;
+}
+
+function runSse(idx) {
+  if (idx >= sseEvents.length) {
+    document.getElementById('sseStatus').textContent = '流结束 ✓';
+    sseRunning = false;
+    return;
+  }
+  const ev = sseEvents[idx];
+  const t = setTimeout(() => {
+    addSseLine(ev.type, ev.data, 0);
+    runSse(idx + 1);
+  }, ev.delay);
+  sseTimers.push(t);
+}
+
+function replaySse() {
+  sseTimers.forEach(clearTimeout);
+  sseTimers = [];
+  ssePaused = false;
+  sseRunning = true;
+  document.getElementById('sseDemoBody').innerHTML = '';
+  document.getElementById('sseStatus').textContent = '正在推送...';
+  runSse(0);
+}
+
+function pauseSse() {
+  ssePaused = !ssePaused;
+  document.querySelector('.sse-ctrl button:nth-child(2)').textContent = ssePaused ? '▶ 继续' : '⏸ 暂停';
+  document.getElementById('sseStatus').textContent = ssePaused ? '已暂停' : '正在推送...';
+}
+
+// Auto-start after page loads
+setTimeout(replaySse, 800);
+</script>
 </body>
 </html>

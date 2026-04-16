@@ -5,6 +5,35 @@ Each version corresponds to one conversation iteration.
 
 ---
 
+## v0.14 — 2026-04-16
+
+### 需求
+> 更新所有 md 文件，展示 Web Playground 新能力；描述中突出 harness 实践和 AI coding 实践
+
+### 变更
+
+#### `README.md`
+- 标题/副标题加入 "Web Playground" 作为第三种交互方式
+- 新增 Web Playground ASCII 示意图 + 核心交互特性表格（流式渲染、思考卡片、工具卡片、压缩卡片、Teammate 悬浮条、工作空间抽屉、压缩链导航等）
+- 架构图更新：加入 `StreamService`、`ChatController`（SSE 端点）、`index.html`（Web Playground SPA）
+- 能力表格更新：`ContextCompactor` 补充压缩历史 `.transcripts/` 说明；`TeammateRunner` 补充实时持久化和 Web Playground 可视化说明；`SessionStore` 补充子会话命名约定
+- 新增 **REST API** 章节：同步接口 + SSE 流式接口 + SSE 事件协议完整表格 + 会话与历史接口列表
+- 新增 **Harness 实践** 章节：AgentLoop 模式、ToolProvider 接口、AgentEventListener 事件总线、TeammateRunner 多 Agent 编排、ContextCompactor 三层压缩详解
+- 新增 **AI Coding 实践** 章节：说明项目本身由 Claude Code 全程辅助开发，0 行手写代码，每条 CHANGELOG 对应一轮对话
+- 安全模型补充 Transcript API 路径穿越防护说明
+- 英文部分同步更新所有新章节
+
+#### `CONTRIBUTING.md`
+- 新增 **扩展 SSE 事件** 章节：三层管道（AgentEventListener → StreamService → index.html）+ 完整代码示例
+- 新增 **扩展 Web Playground** 章节：关键函数说明表格（`handleSseEvent`、`appendAiRow`、`openDrawer`、`renderMiniMessages`、`buildTranscriptChain`、`switchSession`、`recordCompact`、`updateTmFloat`）
+
+#### `docs/TESTING.md`
+- 目录加入 Scenario 10
+- 新增 **Scenario 10: Web Playground — 流式 UI 全流程**：SSE 事件流示例、UI 渲染逐项验证、历史恢复验证、多次压缩链验证、结果表格
+- 总体测试结论表格加入 Web Playground 条目；ContextCompactor 条目补充压缩链多层追溯验证
+
+---
+
 ## v0.13 — 2026-04-16
 
 ### 需求

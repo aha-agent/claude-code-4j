@@ -2,7 +2,7 @@
 
 > **测试环境**：Java 17、Maven 3.9、DashScope qwen3-plus（OpenAI 兼容协议）
 > **运行方式**：见各场景"触发方式"，通用启动命令附于文末
-> **测试时间**：2026-04-14
+> **测试时间**：2026-04-14 ~ 2026-04-16
 
 ---
 
@@ -17,6 +17,7 @@
 7. [WorktreeManager — Git Worktree 目录隔离](#scenario-7)
 8. [Slash 命令 — REPL 控制面板](#scenario-8)
 9. [Agent Teams — 多 Agent 协作](#scenario-9)
+10. [Web Playground — 流式 UI 全流程](#scenario-10)
 
 ---
 
@@ -543,6 +544,115 @@ You> 请创建两个 Teammate：
 
 ---
 
+<a name="scenario-10"></a>
+## Scenario 10: Web Playground — 流式 UI 全流程
+
+### 触发方式
+
+```bash
+# 启动服务
+mvn exec:java -pl claude-code-4j-start \
+  -Dexec.mainClass="ai.claude.code.Application"
+
+# 访问 http://localhost:8080
+# 在输入框输入：请创建两个 Teammate，reviewer 和 tester，分别审查和测试 ShellUtils.java
+```
+
+### 过程数据
+
+**SSE 事件流（通过浏览器 DevTools Network 面板观察）：**
+
+```
+event: session_id
+data: {"sessionId":"20260416-abc123"}
+
+event: thinking_start
+data: {}
+
+event: thinking_text
+data: {"text":"我需要创建两个 Teammate..."}
+
+event: thinking_end
+data: {"ms":2341}
+
+event: tool_start
+data: {"toolName":"spawn_teammate","toolCallId":"tc-xxx-0","input":"{\"name\":\"reviewer\"...}"}
+
+event: tool_end
+data: {"toolCallId":"tc-xxx-0","output":"Spawned teammate 'reviewer'"}
+
+event: team_tool_start
+data: {"agentId":"reviewer","toolName":"read_file"}
+
+event: team_tool_end
+data: {"agentId":"reviewer","toolName":"read_file"}
+
+event: team_text
+data: {"agentId":"reviewer","text":"ShellUtils.java 审查完成..."}
+
+event: team_done
+data: {"agentId":"reviewer"}
+
+event: compact_done
+data: {"summary":"用户请求审查 ShellUtils.java...","transcriptFile":"transcript_20260416_abc.json"}
+
+event: done
+data: {}
+```
+
+**UI 渲染验证（逐项检查）：**
+
+```
+✅ 思考卡片：展示"正在思考..."旋转动画 → 完成后折叠显示"已思考 2.3s"
+✅ 工具卡片：spawn_teammate 执行中展开 → 完成自动折叠，显示工具名 + 结果
+✅ 文字回复：头像仅在文字回复时显示，工具卡和思考卡无头像
+✅ Teammate 悬浮条：输入框上方出现"reviewer · 正在执行 read_file ···"
+✅ 工作空间自动打开：首次 team_tool_start 时右侧抽屉自动滑入
+✅ 工作空间实时更新：每次 team_tool_end 刷新抽屉内容
+✅ Teammate 摘要卡：team_done 后悬浮条消失，对话流末尾出现摘要卡
+✅ 压缩卡片：compact_done 后置于对话流顶部，显示摘要前 200 字
+✅ 压缩历史抽屉：点击"查看完整历史" → 抽屉展示压缩前完整消息列表
+✅ 压缩链导航：多次压缩时生成多个 Tab，可点击分隔符跳转到更早的 Tab
+```
+
+**历史恢复验证：**
+
+```
+# 刷新页面，点击左侧历史会话
+✅ 压缩卡片正确还原（非普通用户气泡）
+✅ Teammate 摘要卡正确还原（含"查看工作区"按钮）
+✅ 工具卡片默认折叠（不再执行中展开）
+✅ 侧边栏只显示 lead 会话，不显示 -tm- 子会话
+✅ Markdown 正确渲染（标题、列表、代码块）
+```
+
+**多次压缩链验证：**
+
+```
+# 触发第一次压缩（消息数 > 40）→ 继续对话 → 再次压缩
+✅ 压缩卡片更新计数：显示"第 2 次"
+✅ 抽屉生成 2 个 Tab：第1次、第2次
+✅ 第2次 Tab 内有可点击分隔符"← 查看更早的压缩历史"
+✅ 点击分隔符后切换到第1次 Tab
+```
+
+### 结果
+
+| 项目 | 结果 |
+|------|------|
+| SSE 连接建立 | ✅ EventSource 正常连接，断线自动重试（指数退避，最多 3 次） |
+| 流式渲染顺序 | ✅ 思考 → 工具 → 文字，顺序始终正确 |
+| Avatar 逻辑 | ✅ 仅文字回复行显示头像，工具/思考卡无头像 |
+| Teammate 实时状态 | ✅ 悬浮条随 SSE 事件实时更新 |
+| 工作空间实时数据 | ✅ 每次工具调用后 session 落盘，抽屉可立即加载 |
+| 压缩卡位置 | ✅ 始终位于对话流顶部，多次压缩更新同一张卡 |
+| 压缩链导航 | ✅ 多层 transcript 文件沿 _transcript_file 链正确追溯 |
+| 历史恢复 | ✅ 所有卡片类型（压缩/Teammate/工具）正确还原 |
+| Markdown 渲染 | ✅ summary、AI 回复均正确渲染标题/列表/代码块 |
+| 会话侧边栏过滤 | ✅ -tm- 子会话不出现在侧边栏 |
+
+---
+
 ## 总体测试结论
 
 | 能力模块 | 状态 | 关键验证点 |
@@ -550,13 +660,14 @@ You> 请创建两个 Teammate：
 | FileTools (bash/read/write/edit) | ✅ 通过 | 文件生成正确，编译运行通过，路径安全检查生效 |
 | TodoManager | ✅ 通过 | 状态流转正确，NAG 提醒按阈值触发 |
 | SkillLoader | ✅ 通过 | 按需加载，不预占 context |
-| ContextCompactor | ✅ 通过 | 三层压缩均触发，压缩率 90%，对话连贯性保持 |
+| ContextCompactor | ✅ 通过 | 三层压缩均触发，压缩率 90%，对话连贯性保持；压缩链多层追溯正确 |
 | BackgroundRunner | ✅ 通过 | 异步执行不阻塞，完成通知自动注入 |
 | TaskStore | ✅ 通过 | 依赖图正确解锁，持久化跨会话恢复 |
 | WorktreeManager | ✅ 通过 | 目录隔离，git 分支独立，危险命令拦截 |
 | Slash 命令 | ✅ 通过 | 全部 8 个命令响应正确，零 LLM 调用 |
 | SecurityUtils | ✅ 通过 | rm -rf /、sudo 等危险命令被拦截 |
 | **Agent Teams** | ✅ 通过 | spawn/list/认领/通信/shutdown 全流程验证通过 |
+| **Web Playground** | ✅ 通过 | SSE 流式渲染、Teammate 实时可视化、压缩链导航、历史恢复全部正确 |
 
 ---
 

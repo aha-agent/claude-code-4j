@@ -30,6 +30,10 @@ If you find a bug or have a feature suggestion:
 - **依赖** — service 模块不引入 Spring，保持框架无关性
 - **编译验证** — 提交前运行 `mvn compile` 确认两个子模块均能编译通过
 
+---
+
+## 扩展指南 / Extension Guide
+
 ### 扩展新工具 / Add New Tools
 
 1. 在 `claude-code-4j-service` 中新建实现 `ToolProvider` 接口的类
@@ -39,6 +43,57 @@ If you find a bug or have a feature suggestion:
 ### 扩展 Teammate 工具 / Add Teammate Tools
 
 如需给 Teammate 增加工具，在 `TeammateLoop.buildDispatch()` 和 `TeammateLoop.buildToolDefs()` 中各加一项即可。Teammate 工具集与 Lead 刻意分开，以保持职责清晰。
+
+### 扩展 SSE 事件 / Add SSE Events
+
+SSE 事件管道由三层组成：
+1. `AgentEventListener`（service 模块）— 定义新的 `default` 事件方法
+2. `StreamService.SseAgentEventListener`（start 模块）— 实现事件方法，调用 `emitter.send()`
+3. `index.html` JS — 在 `handleSseEvent` 的 `switch` 中增加对应 case
+
+示例：新增一个 `tool_progress` 事件：
+
+```java
+// AgentEventListener.java
+default void onToolProgress(String toolCallId, int percent) {}
+
+// StreamService.java (SseAgentEventListener)
+@Override
+public void onToolProgress(String toolCallId, int percent) {
+    send("tool_progress", Map.of("toolCallId", toolCallId, "percent", percent));
+}
+```
+
+```javascript
+// index.html
+case 'tool_progress': {
+  const el = toolBlocks[payload.toolCallId];
+  if (el) el.querySelector('.progress').style.width = payload.percent + '%';
+  break;
+}
+```
+
+### 扩展 Web Playground / Extend the Web Playground
+
+Web Playground 是单文件 SPA（`claude-code-4j-start/src/main/resources/static/index.html`），采用 Linear 设计语言，无构建步骤。
+
+**关键函数说明：**
+
+| 函数 | 职责 |
+|------|------|
+| `handleSseEvent(type, payload)` | SSE 事件分发入口 |
+| `appendAiRow()` | 创建 AI 消息行（`.msg-ai` + `.ai-body`） |
+| `getOrCreateTextEl()` | 创建/复用文字块（含头像，确保仅在文字回复时显示） |
+| `openDrawer(type, data)` | 打开右侧工作空间抽屉 |
+| `renderMiniMessages(container, msgs, onCompactClick)` | 渲染 mini 消息列表（抽屉内复用主对话流 CSS 类） |
+| `buildTranscriptChain(latestFile)` | 沿 `_transcript_file` 链递归加载压缩历史 |
+| `switchSession(sessionId)` | 恢复历史会话（含压缩卡、Teammate 卡正确还原） |
+| `recordCompact(summary, file)` | 记录并渲染压缩卡（始终置于对话流顶部） |
+| `updateTmFloat()` | 更新 Teammate 悬浮状态条 |
+
+修改前端后直接刷新浏览器即可看到效果（Spring Boot 提供静态文件服务）。
+
+---
 
 ## 许可证 / License
 
